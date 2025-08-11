@@ -62,6 +62,29 @@
   (interactive)
   (find-file user-init-file))
 
+(defun my-projectile-run-project (&optional prompt)
+  (interactive "P")
+  (let ((compilation-read-command
+         (or (not (projectile-run-command (projectile-compilation-dir)))
+             prompt)))
+    (projectile-run-project prompt)))
+
+(defun my-projectile-compile-project (&optional prompt)
+  (interactive "P")
+  (let ((compilation-read-command
+         (or (not (projectile-compilation-command (projectile-compilation-dir)))
+             prompt)))
+    (projectile-compile-project prompt)))
+
+(defun my-setup-prog-keybindings ()
+  "Set up keybindings for programming modes."
+  (general-define-key
+   :keymaps 'local
+   "C-c C-c" 'my-projectile-compile-project
+   "C-c C-v" 'my-projectile-run-project))
+
+(add-hook 'prog-mode-hook #'my-setup-prog-keybindings)
+
 ;; global modes
 (which-key-mode t)
 (electric-pair-mode t)
@@ -72,6 +95,8 @@
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
 (setq eshell-banner-message "")
+(setq display-line-numbers-type 'relative)
+(global-display-line-numbers-mode t)
 
 ;; general config
 (use-package general
@@ -81,9 +106,9 @@
   (general-override-mode)
   (general-auto-unbind-keys)
   (general-define-key
-    :keymaps 'emacs-lisp-mode-map
-    "C-M-i" nil
-    "M-<tab>" nil)
+   :keymaps 'emacs-lisp-mode-map
+   "C-M-i" nil
+   "M-<tab>" nil)
   (general-def
     [remap move-beginning-of-line] 'doom/backward-to-bol-or-indent
     [remap move-end-of-line] 'doom/forward-to-last-non-comment-or-eol
@@ -101,8 +126,9 @@
   (general-create-definer ch-def ; Help prefix
     :prefix "C-h")
   (ch-def "d c" 'open-emacs-config)
-  (general-create-definer ccp-def ; Project prefix
-    :prefix "C-c p"))
+  (general-define-key :keymaps 'prog-mode
+		      "C-c C-c" 'my-projectile-compile-project
+		      "C-c C-v" 'my-projectile-run-project))
 
 ;; packages
 
@@ -120,7 +146,7 @@
     "C-o" 'crux-smart-open-line))
 
 (use-package pulsar
-  :hook (after-init . pulsar-global-mode))
+  :config (pulsar-global-mode t))
 
 (use-package ace-window
   :general
@@ -133,20 +159,20 @@
   (ctrlf-mode t))
 
 (use-package flycheck
-  :hook (after-init . global-flycheck-mode))
+  :custom (global-flycheck-mode t))
 
 (use-package emojify
-  :hook (after-init . global-emojify-mode))
+  :custom (global-emojify-mode t))
 
 (use-package nerd-icons)
 
 (use-package colorful-mode
-  :hook (after-init . global-colorful-mode)
   :custom
   (colorful-use-prefix t)
   (colorful-only-strings 'only-prog)
   (css-fontify-colors nil)
   :config
+  (global-colorful-mode t)
   (add-to-list 'global-colorful-modes 'helpful-mode))
 
 (use-package indent-bars
@@ -161,13 +187,13 @@
   :hook ((python-ts-mode yaml-mode) . indent-bars-mode))
 
 (use-package apheleia
-  :hook (after-init . apheleia-global-mode))
+  :config (apheleia-global-mode t))
 
-(use-package fancy-compilation
-  :commands (fancy-compilation-mode))
+;; (use-package fancy-compilation
+;;   :commands (fancy-compilation-mode))
 
-(with-eval-after-load 'compile
-  (fancy-compilation-mode))
+;; (with-eval-after-load 'compile
+;;   (fancy-compilation-mode))
 
 (use-package eat
   :ensure (:type git :host codeberg :repo "akib/emacs-eat")
@@ -226,7 +252,8 @@
   (marginalia-mode))
 
 (use-package corfu
-  :hook (after-init . global-corfu-mode)
+  :config
+  (global-corfu-mode t)
   :general
   (general-def
     "M-`" 'completion-at-point))
@@ -242,10 +269,13 @@
 (use-package projectile
   :general
   (general-def
-    "C-c p" 'projectile-command-map)
-  (ccp-def "s" 'projectile-ripgrep))
+    "C-c p" 'projectile-command-map))
 
 (use-package persp-mode) ; not enabled yet
+
+(use-package good-scroll
+  :config
+  (good-scroll-mode 1))
 
 ;; Zig packages
 
@@ -253,3 +283,7 @@
   :ensure (:type git :host codeberg :repo "meow_king/zig-ts-mode")
   :config
   (add-to-list 'auto-mode-alist '("\\.zig\\'" . zig-ts-mode)))
+
+(provide 'init)
+
+;;; init.el ends here

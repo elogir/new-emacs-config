@@ -252,8 +252,8 @@
   (marginalia-mode))
 
 (use-package corfu
-  :config
-  (global-corfu-mode t)
+  :init
+  (global-corfu-mode)
   :general
   (general-def
     "M-`" 'completion-at-point))

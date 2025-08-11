@@ -1,0 +1,12 @@
+ls
+emacs
+emacs -nw
+ls
+ls
+ff
+find-file recentf 
+l
+ls
+ll
+c
+ff

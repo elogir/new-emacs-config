@@ -91,6 +91,7 @@
 (winner-mode t)
 (delete-selection-mode t)
 (global-auto-revert-mode t)
+(global-so-long-mode nil)
 
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
@@ -113,7 +114,12 @@
     [remap move-beginning-of-line] 'doom/backward-to-bol-or-indent
     [remap move-end-of-line] 'doom/forward-to-last-non-comment-or-eol
     "M-<tab>" nil
-    "C-M-i" nil)
+    "C-M-i" nil
+    "C-O" 'other-frame
+    "C-|" (lambda () (interactive)
+            (duplicate-line)
+            (forward-line)
+            (doom/forward-to-last-non-comment-or-eol)))
   (general-create-definer cc-def ; Comp prefix
     :prefix "C-c")
   (cc-def
@@ -145,8 +151,11 @@
     "M-o" 'crux-smart-open-line-above
     "C-o" 'crux-smart-open-line))
 
-(use-package pulsar
-  :config (pulsar-global-mode t))
+(use-package beacon
+  :custom
+  (beacon-color "#ffff00")
+  :config
+  (beacon-mode t))
 
 (use-package ace-window
   :general
@@ -267,15 +276,28 @@
 (use-package rg)
 
 (use-package projectile
-  :general
-  (general-def
-    "C-c p" 'projectile-command-map))
+  :custom
+  (projectile-track-known-projects-automatically nil)
+  (projectile-auto-discover nil)
+  :config
+  (define-key global-map (kbd "C-c p") 'projectile-command-map)
+  (push ".class" projectile-globally-ignored-file-suffixes)
+  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
+  (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
 
 (use-package persp-mode) ; not enabled yet
 
 (use-package good-scroll
   :config
   (good-scroll-mode 1))
+
+(use-package eglot
+  :ensure nil
+  :hook
+  (zig-ts-mode . eglot-ensure))
+
+(use-package doom-modeline
+  :init (doom-modeline-mode 1))
 
 ;; Zig packages
 

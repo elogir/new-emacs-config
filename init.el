@@ -62,26 +62,62 @@
   (interactive)
   (find-file user-init-file))
 
-(defun my-projectile-run-project (&optional prompt)
-  (interactive "P")
-  (let ((compilation-read-command
-         (or (not (projectile-run-command (projectile-compilation-dir)))
-             prompt)))
-    (projectile-run-project prompt)))
+(defun my-new-eshell ()
+  "Open a new eshell buffer with a unique name."
+  (interactive)
+  (let ((eshell-buffer-name (generate-new-buffer-name "*eshell*")))
+    (eshell)))
 
-(defun my-projectile-compile-project (&optional prompt)
+(defun my-project-run-project (&optional prompt)
+  "Run a command in the project root directory.
+With prefix argument PROMPT, always prompt for the command."
   (interactive "P")
-  (let ((compilation-read-command
-         (or (not (projectile-compilation-command (projectile-compilation-dir)))
-             prompt)))
-    (projectile-compile-project prompt)))
+  (let* ((pr (project-current t))
+         (root (project-root pr))
+         (default-directory root)
+         (compilation-read-command
+          (or prompt
+              (not (and (boundp 'my-project-run-command-cache)
+			(gethash root my-project-run-command-cache))))))
+    (unless (boundp 'my-project-run-command-cache)
+      (setq my-project-run-command-cache (make-hash-table :test 'equal)))
+    (let ((command (if compilation-read-command
+                       (read-shell-command "Run command: "
+                                           (gethash root my-project-run-command-cache))
+                     (gethash root my-project-run-command-cache))))
+      (when command
+        (puthash root command my-project-run-command-cache)
+        (compile command)))))
+
+(defun my-project-compile-project (&optional prompt)
+  "Compile the project.
+With prefix argument PROMPT, always prompt for the compile command."
+  (interactive "P")
+  (let* ((pr (project-current t))
+         (root (project-root pr))
+         (default-directory root)
+         (compilation-read-command
+          (or prompt
+              (not (and (boundp 'my-project-compile-command-cache)
+			(gethash root my-project-compile-command-cache))))))
+    (unless (boundp 'my-project-compile-command-cache)
+      (setq my-project-compile-command-cache (make-hash-table :test 'equal)))
+    (let ((command (if compilation-read-command
+                       (read-shell-command "Compile command: "
+                                           (or (gethash root my-project-compile-command-cache)
+                                               compile-command))
+                     (or (gethash root my-project-compile-command-cache)
+                         compile-command))))
+      (when command
+        (puthash root command my-project-compile-command-cache)
+        (compile command)))))
 
 (defun my-setup-prog-keybindings ()
   "Set up keybindings for programming modes."
   (general-define-key
    :keymaps 'local
-   "C-c C-c" 'my-projectile-compile-project
-   "C-c C-v" 'my-projectile-run-project))
+   "C-c C-c" 'my-project-compile-project
+   "C-c C-v" 'my-project-run-project))
 
 (add-hook 'prog-mode-hook #'my-setup-prog-keybindings)
 
@@ -125,7 +161,7 @@
   (cc-def
     "<left>" 'winner-undo
     "<right>" 'winner-redo
-    "o t" 'eshell)
+    "o t" 'my-new-eshell)
   (general-create-definer cx-def ; Main prefix
     :prefix "C-x")
   (cx-def "K" 'kill-current-buffer)
@@ -193,7 +229,7 @@
   (indent-bars-treesit-scope '((python function_definition class_definition for_statement
 				       if_statement with_statement while_statement)))
   (indent-bars-treesit-wrap '((c argument_list parameter_list init_declarator parenthesized_expression)))
-  :hook ((python-ts-mode yaml-mode) . indent-bars-mode))
+  :hook ((python-ts-mode yaml-mode zig-ts-mode) . indent-bars-mode))
 
 (use-package apheleia
   :config (apheleia-global-mode t))
@@ -215,7 +251,7 @@
     "C-<tab>" 'popper-cycle)
   :init
   (setq popper-reference-buffers
-        '("\\*eshell\\*"))
+        '("\\*.*eshell.*\\*"))
   (popper-mode +1)
   (popper-echo-mode +1))
 
@@ -225,6 +261,7 @@
   (dashboard-startup-banner 'logo)
   (dashboard-center-content t)
   (dashboard-vertically-center-content t)
+  (initial-buffer-choice (lambda () (get-buffer-create dashboard-buffer-name)))
   :config
   (add-hook 'elpaca-after-init-hook #'dashboard-insert-startupify-lists)
   (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
@@ -275,29 +312,44 @@
 
 (use-package rg)
 
-(use-package projectile
-  :custom
-  (projectile-track-known-projects-automatically nil)
-  (projectile-auto-discover nil)
-  :config
-  (define-key global-map (kbd "C-c p") 'projectile-command-map)
-  (push ".class" projectile-globally-ignored-file-suffixes)
-  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
-  (add-to-list 'projectile-project-root-files-bottom-up "BUILD"))
-
-(use-package persp-mode) ; not enabled yet
-
-(use-package good-scroll
-  :config
-  (good-scroll-mode 1))
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown")
+  :bind (:map markdown-mode-map
+              ("C-c C-e" . markdown-do)))
 
 (use-package eglot
   :ensure nil
   :hook
+  (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
   (zig-ts-mode . eglot-ensure))
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1))
+
+(use-package doom-themes
+  :config
+  (load-theme 'doom-tomorrow-night t)
+  (doom-themes-org-config))
+
+(use-package zen-mode
+  :general
+  (cc-def "t z" 'zen-mode))
+
+(use-package undo-fu
+  :general
+  (general-def
+    [remap undo] 'undo-fu-only-undo
+    [remap undo-redo] 'undo-fu-only-redo))
+
+(use-package undo-fu-session
+  :config
+  (undo-fu-session-global-mode t))
+
+(use-package vundo
+  :general
+  (cx-def "u" 'vundo))
 
 ;; Zig packages
 

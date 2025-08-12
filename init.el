@@ -57,6 +57,27 @@
       `((".*" ,temporary-file-directory t)))
 
 ;; custom functions
+
+(defvar popper--saved-sizes (make-hash-table :test 'equal))
+
+(defun popper--save-size (buffer)
+  (when-let ((window (get-buffer-window buffer)))
+    (puthash (buffer-name buffer) (window-height window) popper--saved-sizes)))
+
+(defun popper--restore-size (buffer)
+  (when-let* ((height (gethash (buffer-name buffer) popper--saved-sizes))
+              (window (get-buffer-window buffer)))
+    (window-resize window (- height (window-height window)))))
+
+(defun popper--close-advice (orig-fun)
+  (when popper-open-popup-alist
+    (popper--save-size (cdar popper-open-popup-alist)))
+  (funcall orig-fun))
+
+(defun popper--open-hook ()
+  (popper--restore-size (current-buffer)))
+
+
 (defun open-emacs-config ()
   "Open the Emacs configuration file."
   (interactive)
@@ -249,11 +270,16 @@ With prefix argument PROMPT, always prompt for the compile command."
   (general-def
     "C-`" 'popper-toggle
     "C-<tab>" 'popper-cycle)
+  :custom
+  (popper-group-function #'popper-group-by-project)
   :init
   (setq popper-reference-buffers
         '("\\*.*eshell.*\\*"))
   (popper-mode +1)
-  (popper-echo-mode +1))
+  (popper-echo-mode +1)
+  :config
+  (advice-add 'popper-close-latest :around #'popper--close-advice)
+  (add-hook 'popper-open-popup-hook #'popper--open-hook))
 
 (use-package dashboard
   :custom
@@ -350,6 +376,11 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package vundo
   :general
   (cx-def "u" 'vundo))
+
+(use-package dimmer
+  :config
+  (dimmer-configure-which-key)
+  (dimmer-mode t))
 
 ;; Zig packages
 

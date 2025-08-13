@@ -2,9 +2,6 @@
 (setq inhibit-default-init nil)
 (setq native-comp-async-report-warnings-errors nil)
 
-(defvar default-file-name-handler-alist file-name-handler-alist)
-(setq file-name-handler-alist nil)
-
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 1)
 
@@ -18,8 +15,7 @@
   (run-with-idle-timer
    1 nil
    (lambda ()
-     (setq file-name-handler-alist default-file-name-handler-alist
-           gc-cons-percentage 0.1
+     (setq gc-cons-percentage 0.1
            gc-cons-threshold 100000000)
      (message "gc-cons-threshold & file-name-handler-alist restored")
      (when (boundp 'after-focus-change-function)

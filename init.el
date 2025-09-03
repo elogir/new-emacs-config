@@ -153,6 +153,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
 (setq eshell-banner-message "")
+;; (add-to-list 'exec-path "/home/rigole/flutter/bin")
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
 
@@ -177,6 +178,8 @@ With prefix argument PROMPT, always prompt for the compile command."
             (duplicate-line)
             (forward-line)
             (doom/forward-to-last-non-comment-or-eol)))
+  (general-create-definer cz-def ; gptel prefix
+    :prefix "C-z")
   (general-create-definer cc-def ; Comp prefix
     :prefix "C-c")
   (cc-def
@@ -188,10 +191,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   (cx-def "K" 'kill-current-buffer)
   (general-create-definer ch-def ; Help prefix
     :prefix "C-h")
-  (ch-def "d c" 'open-emacs-config)
-  (general-define-key :keymaps 'prog-mode
-		      "C-c C-c" 'my-projectile-compile-project
-		      "C-c C-v" 'my-projectile-run-project))
+  (ch-def "d c" 'open-emacs-config))
 
 ;; packages
 
@@ -347,9 +347,14 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package eglot
   :ensure nil
+  :general
+  (general-define-key :keymaps 'eglot-mode-map "M-RET" #'eglot-code-actions)
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
-  (zig-ts-mode . eglot-ensure))
+  (c-ts-mode . eglot-ensure)
+  (c++-ts-mode . eglot-ensure)
+  (zig-ts-mode . eglot-ensure)
+  (dart-ts-mode . eglot-ensure))
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1))
@@ -382,12 +387,80 @@ With prefix argument PROMPT, always prompt for the compile command."
   (dimmer-configure-which-key)
   (dimmer-mode t))
 
+(use-package exec-path-from-shell
+  :config
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize))
+  (when (daemonp)
+    (exec-path-from-shell-initialize)))
+
+(use-package posframe)
+(use-package pdf-tools
+  :config
+  (pdf-loader-install))
+
+(use-package gptel
+  :general
+  (cz-def "s" 'gptel-send)
+  (cz-def "r" 'gptel-rewrite)
+  (cz-def "a" 'gptel-add)
+  (cz-def "f" 'gptel-add-file)
+  :config
+  (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
+  (setq gptel-model   'openai/gpt-4.1-nano
+	gptel-backend
+	(gptel-make-openai "OpenRouter"
+          :host "openrouter.ai"
+          :endpoint "/api/v1/chat/completions"
+          :stream t
+	  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
+          :models '(openai/gpt-4.1-nano
+		    openai/gpt-5-nano))))
+
+(use-package gptel-quick
+  :ensure (:type git :host github :repo "karthink/gptel-quick")
+  :general
+  (cz-def "?" 'gptel-quick))
+
+(use-package gptel-magit
+  :hook (magit-mode . gptel-magit-install))
+
+;; Flutter packages
+
+(use-package flutter
+  :after dart-ts-mode
+  :hook (dart-ts-mode . (lambda ()
+                          (general-define-key :keymaps 'local
+                                              "C-c C-c" #'flutter-run-or-hot-reload
+                                              "C-c C-v" #'flutter-hot-restart))))
+
 ;; Zig packages
 
 (use-package zig-ts-mode
   :ensure (:type git :host codeberg :repo "meow_king/zig-ts-mode")
   :config
   (add-to-list 'auto-mode-alist '("\\.zig\\'" . zig-ts-mode)))
+
+;; Dart packages
+
+(use-package dart-ts-mode
+  :ensure (:type git :host github :repo "50ways2sayhard/dart-ts-mode")
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
+
+;; C packages
+
+(add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
+
+;; C++ packages
+
+(add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
+
+;; Typst packages
+
+(use-package typst-ts-mode)
 
 (provide 'init)
 

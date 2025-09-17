@@ -91,24 +91,31 @@
 
 (defun my-project-run-project (&optional prompt)
   "Run a command in the project root directory.
-With prefix argument PROMPT, always prompt for the command."
+With prefix argument PROMPT, always prompt for the command.
+Runs in comint-mode and makes the buffer writable."
   (interactive "P")
   (let* ((pr (project-current t))
          (root (project-root pr))
          (default-directory root)
+         ;; If PROMPT is non-nil or no cached command, prompt.
          (compilation-read-command
           (or prompt
               (not (and (boundp 'my-project-run-command-cache)
-			(gethash root my-project-run-command-cache))))))
+                        (gethash root my-project-run-command-cache)))))
+         ;; Allow input to the running process in comint buffer.
+         (compilation-disable-input nil))
     (unless (boundp 'my-project-run-command-cache)
       (setq my-project-run-command-cache (make-hash-table :test 'equal)))
-    (let ((command (if compilation-read-command
-                       (read-shell-command "Run command: "
-                                           (gethash root my-project-run-command-cache))
-                     (gethash root my-project-run-command-cache))))
-      (when command
-        (puthash root command my-project-run-command-cache)
-        (compile command)))))
+    (let* ((command (if compilation-read-command
+                        (read-shell-command
+                         "Run command: "
+                         (gethash root my-project-run-command-cache))
+                      (gethash root my-project-run-command-cache)))
+           (buf (and command
+                     (progn
+                       (puthash root command my-project-run-command-cache)
+                       ;; Run in comint-mode (interactive).
+                       (compile command t))))))))
 
 (defun my-project-compile-project (&optional prompt)
   "Compile the project.
@@ -223,9 +230,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package ctrlf
   :config
   (ctrlf-mode t))
-
-(use-package flycheck
-  :custom (global-flycheck-mode t))
 
 (use-package emojify
   :custom (global-emojify-mode t))
@@ -351,6 +355,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   (general-define-key :keymaps 'eglot-mode-map "M-RET" #'eglot-code-actions)
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
+  (v-mode . eglot-ensure)
   (c-ts-mode . eglot-ensure)
   (c++-ts-mode . eglot-ensure)
   (zig-ts-mode . eglot-ensure)
@@ -415,6 +420,8 @@ With prefix argument PROMPT, always prompt for the compile command."
           :stream t
 	  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
           :models '(openai/gpt-4.1-nano
+		    openai/gpt-4.1-mini
+		    openai/gpt-4.1
 		    openai/gpt-5-nano))))
 
 (use-package gptel-quick
@@ -424,6 +431,22 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package gptel-magit
   :hook (magit-mode . gptel-magit-install))
+
+(defun indent-region-advice (&rest ignored)
+  (let ((deactivate deactivate-mark))
+    (if (region-active-p)
+        (indent-region (region-beginning) (region-end))
+      (indent-region (line-beginning-position) (line-end-position)))
+    (setq deactivate-mark deactivate)))
+
+(use-package move-text
+  :general
+  (general-def
+    "M-p" 'move-text-up
+    "M-n" 'move-text-down)
+  :config
+  (advice-add 'move-text-up :after 'indent-region-advice)
+  (advice-add 'move-text-down :after 'indent-region-advice))
 
 ;; Flutter packages
 
@@ -441,6 +464,8 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (add-to-list 'auto-mode-alist '("\\.zig\\'" . zig-ts-mode)))
 
+;; (use-package zig-mode)
+
 ;; Dart packages
 
 (use-package dart-ts-mode
@@ -450,6 +475,18 @@ With prefix argument PROMPT, always prompt for the compile command."
     (add-to-list 'eglot-server-programs
                  '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
 
+(add-to-list 'major-mode-remap-alist '(dart-mode . dart-ts-mode))
+
+;; V packages
+
+(use-package v-mode
+  :ensure (:type git :host github :repo "elogir/v-mode")
+  :mode ("\\(\\.v?v\\|\\.vsh\\)$" . 'v-mode)
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(v-mode . ("vls")))))
+
 ;; C packages
 
 (add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
@@ -458,6 +495,11 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
 
+;; Html mode
+
+(add-to-list 'major-mode-remap-alist '(html-mode . html-ts-mode))
+(add-to-list 'major-mode-remap-alist '(mhtml-mode . html-ts-mode))
+
 ;; Typst packages
 
 (use-package typst-ts-mode)
@@ -465,3 +507,4 @@ With prefix argument PROMPT, always prompt for the compile command."
 (provide 'init)
 
 ;;; init.el ends here
+(put 'erase-buffer 'disabled nil)

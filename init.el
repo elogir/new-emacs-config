@@ -160,7 +160,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
 (setq eshell-banner-message "")
-;; (add-to-list 'exec-path "/home/rigole/flutter/bin")
+(setenv "DISPLAY" ":0")
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
 
@@ -176,6 +176,8 @@ With prefix argument PROMPT, always prompt for the compile command."
    "C-M-i" nil
    "M-<tab>" nil)
   (general-def
+    [remap next-error] 'flymake-goto-next-error
+    [remap prev-error] 'flymake-goto-prev-error
     [remap move-beginning-of-line] 'doom/backward-to-bol-or-indent
     [remap move-end-of-line] 'doom/forward-to-last-non-comment-or-eol
     "M-<tab>" nil
@@ -225,6 +227,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   :general
   (cx-def "o" 'ace-window)
   :custom
+  (aw-scope 'frame)
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
 (use-package ctrlf
@@ -340,8 +343,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   (completion-category-defaults nil)
   (completion-category-overrides '((file (styles partial-completion)))))
 
-(use-package rg)
-
 (use-package markdown-mode
   :ensure t
   :mode ("README\\.md\\'" . gfm-mode)
@@ -447,6 +448,10 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (advice-add 'move-text-up :after 'indent-region-advice)
   (advice-add 'move-text-down :after 'indent-region-advice))
+
+(use-package rg
+  :config
+  (rg-enable-menu))
 
 ;; Flutter packages
 

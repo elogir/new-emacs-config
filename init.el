@@ -182,7 +182,7 @@ With prefix argument PROMPT, always prompt for the compile command."
     [remap move-end-of-line] 'doom/forward-to-last-non-comment-or-eol
     "M-<tab>" nil
     "C-M-i" nil
-    "C-O" 'other-frame
+    "C-x O" 'other-frame
     "C-|" (lambda () (interactive)
             (duplicate-line)
             (forward-line)
@@ -423,7 +423,16 @@ With prefix argument PROMPT, always prompt for the compile command."
           :models '(openai/gpt-4.1-nano
 		    openai/gpt-4.1-mini
 		    openai/gpt-4.1
-		    openai/gpt-5-nano))))
+		    openai/gpt-5-nano
+                    openai/gpt-5-codex
+                    openai/gpt-5
+                    openai/gpt-5-mini
+                    google/gemini-2.5-pro
+                    anthropic/claude-sonnet-4.5
+                    x-ai/grok-code-fast-1
+                    x-ai/grok-4-fast
+                    deepseek/deepseek-v3.2-exp
+                    google/gemini-2.5-flash))))
 
 (use-package gptel-quick
   :ensure (:type git :host github :repo "karthink/gptel-quick")
@@ -508,6 +517,31 @@ With prefix argument PROMPT, always prompt for the compile command."
 ;; Typst packages
 
 (use-package typst-ts-mode)
+
+;; PHP packages
+
+(use-package php-ts-mode
+  :ensure (:type git :host github :repo "emacs-php/php-ts-mode")
+  :config
+  (add-to-list 'auto-mode-alist '("\\.php\\'" . php-ts-mode))
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(php-ts-mode . ("intelephense" "--stdio")))))
+
+(use-package web-mode
+  :mode
+  (("\\.phtml\\'" . web-mode)
+   ("\\.blade.php\\'" . web-mode)
+   ("\\.tpl\\'" . web-mode)
+   ("\\.[agj]sp\\'" . web-mode)
+   ("\\.as[cp]x\\'" . web-mode)
+   ("\\.erb\\'" . web-mode)
+   ("\\.mustache\\'" . web-mode)
+   ("\\.djhtml\\'" . web-mode))
+  :config
+  (setq web-mode-engines-alist
+        '(("php"    . "\\.phtml\\'")
+          ("blade"  . "\\.blade\\."))))
 
 (provide 'init)
 

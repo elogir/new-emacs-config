@@ -443,12 +443,12 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package gptel-commit
   :custom
   (gptel-commit-stream t)
-  (gptel-commit-backend (gptel-make-openai "OpenRouter"
+  (gptel-commit-backend (gptel-make-openai "OpenRouterCommit"
                           :host "openrouter.ai"
                           :endpoint "/api/v1/chat/completions"
                           :stream t
 	                  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
-                          :models '(google/gemini-2.5-flash)))
+                          :models '(x-ai/grok-4-fast)))
   :config
   (with-eval-after-load 'magit
     (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)

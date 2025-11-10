@@ -155,6 +155,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 (winner-mode t)
 (delete-selection-mode t)
 (global-auto-revert-mode t)
+(global-visual-line-mode t)
 (global-so-long-mode nil)
 
 (fset 'yes-or-no-p 'y-or-n-p)
@@ -595,7 +596,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (provide 'init)
 
-;;; init.el ends here
 (put 'erase-buffer 'disabled nil)
 
 (setq gptel-commit-prompt
@@ -616,3 +616,5 @@ Follow good Git style:
 - Use the imperative mood in the subject line
 - Wrap the body at 72 characters
 - Keep the body short and concise (omit it entirely if not useful)")
+
+;;; init.el ends here

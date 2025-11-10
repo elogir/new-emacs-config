@@ -405,6 +405,10 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (pdf-loader-install))
 
+(use-package transpose-frame
+  :general
+  (cx-def "M-o" 'transpose-frame))
+
 (use-package gptel
   :general
   (cz-def "C-z" 'gptel-menu)
@@ -413,7 +417,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (gptel-highlight-mode)
-  (setq gptel-model   'openai/gpt-4.1-nano
+  (setq gptel-model   'x-ai/grok-4-fast
         gptel-default-mode 'org-mode
 	gptel-backend
 	(gptel-make-openai "OpenRouter"

@@ -407,13 +407,14 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package gptel
   :general
-  (cz-def "s" 'gptel-send)
-  (cz-def "r" 'gptel-rewrite)
+  (cz-def "C-z" 'gptel-menu)
   (cz-def "a" 'gptel-add)
   (cz-def "f" 'gptel-add-file)
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
+  (gptel-highlight-mode)
   (setq gptel-model   'openai/gpt-4.1-nano
+        gptel-default-mode 'org-mode
 	gptel-backend
 	(gptel-make-openai "OpenRouter"
           :host "openrouter.ai"
@@ -439,8 +440,48 @@ With prefix argument PROMPT, always prompt for the compile command."
   :general
   (cz-def "?" 'gptel-quick))
 
-(use-package gptel-magit
-  :hook (magit-mode . gptel-magit-install))
+(use-package gptel-commit
+  :custom
+  (gptel-commit-stream t)
+  (gptel-commit-backend (gptel-make-openai "OpenRouter"
+                          :host "openrouter.ai"
+                          :endpoint "/api/v1/chat/completions"
+                          :stream t
+	                  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
+                          :models '(google/gemini-2.5-flash)))
+  :config
+  (with-eval-after-load 'magit
+    (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
+    (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale)))
+
+(use-package inheritenv)
+
+;; (defun my-claude-notify (title message)
+;;   "Display a Linux notification using notify-send."
+;;   (if (executable-find "notify-send")
+;;       (call-process "notify-send" nil nil nil title message)
+;;     (message "%s: %s" title message)))
+
+;; (use-package monet
+;;   :ensure (:type git :host github :repo "stevemolitor/monet"))
+;; (use-package claude-code
+;;   :ensure (:type git :host github :repo "stevemolitor/claude-code.el")
+;;   :custom
+;;   (claude-code-notification-function #'my-claude-notify)
+;;   :config
+;;   (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
+;;   (monet-mode 1)
+
+;;   (claude-code-mode)
+;;   :bind-keymap ("C-z" . claude-code-command-map)
+;;   :bind
+;;   (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
+
+;; (add-to-list 'display-buffer-alist
+;;              '("\\*claude:"
+;;                (display-buffer-reuse-window display-buffer-pop-up-frame)
+;;                (reusable-frames . t)
+;;                (pop-up-frame-parameters . ((name . "Claude Code")))))
 
 (defun indent-region-advice (&rest ignored)
   (let ((deactivate deactivate-mark))
@@ -490,6 +531,11 @@ With prefix argument PROMPT, always prompt for the compile command."
                  '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
 
 (add-to-list 'major-mode-remap-alist '(dart-mode . dart-ts-mode))
+
+;; YAML packages
+
+;; (use-package yaml-ts-mode
+;;   :mode ("\\.yaml\\'" . yaml-ts-mode))
 
 ;; V packages
 
@@ -547,3 +593,22 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 ;;; init.el ends here
 (put 'erase-buffer 'disabled nil)
+
+(setq gptel-commit-prompt
+      "You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
+
+If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
+
+Don't repeat information from the subject line in the message body.
+
+Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
+
+Follow good Git style:
+
+- Separate the subject from the body with a blank line
+- Try to limit the subject line to 50 characters
+- Capitalize the subject line
+- Do not end the subject line with any punctuation
+- Use the imperative mood in the subject line
+- Wrap the body at 72 characters
+- Keep the body short and concise (omit it entirely if not useful)")

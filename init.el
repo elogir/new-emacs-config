@@ -157,6 +157,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 (global-auto-revert-mode t)
 (global-visual-line-mode t)
 (global-so-long-mode nil)
+(repeat-mode t)
 
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
@@ -164,6 +165,8 @@ With prefix argument PROMPT, always prompt for the compile command."
 (setenv "DISPLAY" ":0")
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode t)
+(setq window-sides-vertical t)
+(setq read-process-output-max (* 1024 1024)) ;; 1mb
 
 ;; general config
 (use-package general
@@ -192,15 +195,15 @@ With prefix argument PROMPT, always prompt for the compile command."
     :prefix "C-z")
   (general-create-definer cc-def ; Comp prefix
     :prefix "C-c")
+  (general-create-definer cx-def ; Main prefix
+    :prefix "C-x")
+  (general-create-definer ch-def ; Help prefix
+    :prefix "C-h")
   (cc-def
     "<left>" 'winner-undo
     "<right>" 'winner-redo
     "o t" 'my-new-eshell)
-  (general-create-definer cx-def ; Main prefix
-    :prefix "C-x")
   (cx-def "K" 'kill-current-buffer)
-  (general-create-definer ch-def ; Help prefix
-    :prefix "C-h")
   (ch-def "d c" 'open-emacs-config))
 
 ;; packages
@@ -227,6 +230,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package ace-window
   :general
   (cx-def "o" 'ace-window)
+  (cx-def "C-o" 'ace-swap-window)
   :custom
   (aw-scope 'frame)
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
@@ -262,12 +266,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package apheleia
   :config (apheleia-global-mode t))
-
-;; (use-package fancy-compilation
-;;   :commands (fancy-compilation-mode))
-
-;; (with-eval-after-load 'compile
-;;   (fancy-compilation-mode))
 
 (use-package eat
   :ensure (:type git :host codeberg :repo "akib/emacs-eat")
@@ -305,9 +303,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   :general
   (cc-def "r" 'quickrun))
 
-(use-package goto-line-preview
-  :general (general-def [remap goto-line] 'goto-line-preview))
-
 (use-package yasnippet
   :general
   (cc-def "SPC" 'yas-expand)
@@ -318,6 +313,13 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package yasnippet-capf
   :config
   (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
+(use-package consult
+  :general
+  (general-def [remap goto-line] 'consult-goto-line)
+  (general-def [remap switch-to-buffer] 'consult-buffer)
+  (cc-def "s" 'consult-ripgrep)
+  (cc-def "x" 'consult-flymake))
 
 (use-package vertico
   ;; :custom
@@ -418,8 +420,8 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (gptel-highlight-mode)
-  (setq gptel-model   'x-ai/grok-4-fast
-        gptel-default-mode 'org-mode
+  (setq gptel-model   'x-ai/grok-4.1-fast
+        gptel-default-mode 'markdown-mode
 	gptel-backend
 	(gptel-make-openai "OpenRouter"
           :host "openrouter.ai"
@@ -437,6 +439,8 @@ With prefix argument PROMPT, always prompt for the compile command."
                     anthropic/claude-sonnet-4.5
                     x-ai/grok-code-fast-1
                     x-ai/grok-4-fast
+                    x-ai/grok-4.1-fast:free
+                    x-ai/grok-4.1-fast
                     deepseek/deepseek-v3.2-exp
                     google/gemini-2.5-flash))))
 
@@ -453,7 +457,7 @@ With prefix argument PROMPT, always prompt for the compile command."
                           :endpoint "/api/v1/chat/completions"
                           :stream t
 	                  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
-                          :models '(x-ai/grok-4-fast)))
+                          :models '(x-ai/grok-4.1-fast)))
   :config
   (with-eval-after-load 'magit
     (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
@@ -478,7 +482,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 ;;   (monet-mode 1)
 
 ;;   (claude-code-mode)
-;;   :bind-keymap ("C-z" . claude-code-command-map)
 ;;   :bind
 ;;   (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
 
@@ -487,6 +490,9 @@ With prefix argument PROMPT, always prompt for the compile command."
 ;;                (display-buffer-reuse-window display-buffer-pop-up-frame)
 ;;                (reusable-frames . t)
 ;;                (pop-up-frame-parameters . ((name . "Claude Code")))))
+
+;; (use-package vterm)
+
 
 (defun indent-region-advice (&rest ignored)
   (let ((deactivate deactivate-mark))
@@ -503,10 +509,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (advice-add 'move-text-up :after 'indent-region-advice)
   (advice-add 'move-text-down :after 'indent-region-advice))
-
-(use-package rg
-  :config
-  (rg-enable-menu))
 
 ;; Flutter packages
 
@@ -617,4 +619,134 @@ Follow good Git style:
 - Wrap the body at 72 characters
 - Keep the body short and concise (omit it entirely if not useful)")
 
-;;; init.el ends here
+(use-package org-roam
+  :custom
+  (org-roam-completion-everywhere t)
+  (org-roam-node-display-template (concat "${title:*} " (propertize "${tags:10}" 'face 'org-tag)))
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         :map org-mode-map
+         ("M-`" . completion-at-point)
+         :map org-roam-dailies-map
+         ("Y" . org-roam-dailies-capture-yesterday)
+         ("T" . org-roam-dailies-capture-tomorrow))
+  :bind-keymap
+  ("C-c n d" . org-roam-dailies-map)
+  :config
+  (require 'org-roam-dailies)
+  (org-roam-db-autosync-mode))
+
+(use-package org-roam-ui
+  :after org-roam
+  :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t
+        org-roam-ui-open-on-start t))
+
+(defun org-hide-properties ()
+  "Hide all org-mode headline property drawers in buffer. Could be slow if it has a lot of overlays."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward
+            "^ *:properties:\n\\( *:.+?:.*\n\\)+ *:end:\n" nil t)
+      (let ((ov_this (make-overlay (match-beginning 0) (match-end 0))))
+        (overlay-put ov_this 'display "")
+        (overlay-put ov_this 'hidden-prop-drawer t))))
+  (put 'org-toggle-properties-hide-state 'state 'hidden))
+
+(defun org-show-properties ()
+  "Show all org-mode property drawers hidden by org-hide-properties."
+  (interactive)
+  (remove-overlays (point-min) (point-max) 'hidden-prop-drawer t)
+  (put 'org-toggle-properties-hide-state 'state 'shown))
+
+(defun org-toggle-properties ()
+  "Toggle visibility of property drawers."
+  (interactive)
+  (if (eq (get 'org-toggle-properties-hide-state 'state) 'hidden)
+      (org-show-properties)
+    (org-hide-properties)))
+
+;; call org-hide-properties after inserting a new node
+(add-hook 'org-roam-post-node-insert-hook #'(lambda (_ _) (org-hide-properties)))
+
+(use-package casual
+  :bind (:map
+         calc-mode-map
+         ("C-o" . casual-calc-tmenu)
+         :map
+         calc-alg-map
+         ("C-o" . casual-calc-tmenu)))
+
+(defvar bazel-zig-last-target "//" 
+  "Last Bazel target used for debugging.")
+
+(defface my-blue-face
+  '((((background dark)) :background "#293f56")
+    (((background light)) :background "#d6c6a9"))  ; Light complement
+  "Face that adapts to theme background.")
+
+(use-package dape
+  :custom
+  (dape-buffer-window-arrangement 'right)
+  (dape-request-timeout 30)
+  :config
+  (add-hook 'dape-display-source-hook 
+            (lambda () 
+              (pulse-momentary-highlight-one-line 
+               (point) 
+               'my-blue-face)))
+  (add-to-list 'dape-configs
+               `(bazel-zig
+                 modes (zig-mode)
+                 ensure dape-ensure-command
+                 command-cwd dape-command-cwd
+                 command ,(file-name-concat dape-adapter-dir
+                                            "codelldb"
+                                            "extension"
+                                            "adapter"
+                                            "codelldb")
+                 command-args ("--port" :autoport "--settings"
+                               "{\"sourceLanguages\":[\"zig\"],\"evaluationTimeout\":5,\"summaryTimeout\":1}")
+                 port :autoport
+                 target ,(lambda ()
+                           (setq bazel-zig-last-target
+                                 (read-string "Bazel target: " bazel-zig-last-target)))
+                 fn ,(lambda (config)
+                       (let* ((target (plist-get config 'target))
+                              (compile-cmd (format "bazel build --compilation_mode=dbg --spawn_strategy=local %s" target))
+                              (target-clean (string-trim-left target "//"))
+                              (parts (split-string target-clean ":"))
+                              (path (car parts))
+                              (name (if (cdr parts) 
+                                        (cadr parts) 
+                                      (file-name-nondirectory path)))
+                              (binary-path (expand-file-name 
+                                            (format "bazel-bin/%s/%s" path name)
+                                            (dape-cwd)))
+                              (exec-root (string-trim
+                                          (shell-command-to-string "bazel info execution_root"))))
+                         (thread-first config
+                                       (plist-put 'compile compile-cmd)
+                                       (plist-put ':program binary-path)
+                                       (plist-put 'prefix-remote (file-name-as-directory exec-root)))))
+                 prefix-local ,(lambda () (file-name-as-directory (dape-cwd)))
+                 :type "lldb"
+                 :request "launch"
+                 :cwd dape-cwd
+                 :initCommands ["command source ~/.lldbinit"
+                                "settings set target.max-children-count 50"
+                                "settings set target.max-string-summary-length 200"]
+                 :args []
+                 :stopOnEntry nil)))
+
+;; (use-package greader
+;;   :ensure (:type git :host gitlab :repo "michelangelo-rodriguez/greader")
+;;   :custom
+;;   (greader-current-backend 'greader-speechd))
+
+;; ;;; init.el ends here

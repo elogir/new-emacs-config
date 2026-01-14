@@ -140,14 +140,48 @@ With prefix argument PROMPT, always prompt for the compile command."
         (puthash root command my-project-compile-command-cache)
         (compile command)))))
 
-(defun my-setup-prog-keybindings ()
-  "Set up keybindings for programming modes."
-  (general-define-key
-   :keymaps 'local
-   "C-c C-c" 'my-project-compile-project
-   "C-c C-v" 'my-project-run-project))
+(defvar my/h-d-map (make-sparse-keymap)
+  "My custom help submenu under C-h d.")
+(define-key help-map (kbd "d") my/h-d-map)
 
-(add-hook 'prog-mode-hook #'my-setup-prog-keybindings)
+(defvar my/c-o-map (make-sparse-keymap)
+  "My custom open submenu under C-c o.")
+(define-key global-map (kbd "C-c o") my/c-o-map)
+
+(defvar my/c-t-map (make-sparse-keymap)
+  "My custom toggle submenu under C-c t.")
+(define-key global-map (kbd "C-c t") my/c-t-map)
+
+(use-package emacs
+  :ensure nil
+  :bind
+  (("C-c <left>" . winner-undo)
+   ("C-c <right>" . winner-redo)
+   ("C-x K" . kill-current-buffer)
+   ("C-x O" . other-frame)
+   ("C-|" . (lambda () (interactive)
+              (duplicate-line)
+              (forward-line)
+              (doom/forward-to-last-non-comment-or-eol)))
+
+   ;; remaps
+   ([remap next-error] . flymake-goto-next-error)
+   ([remap pre-error] . flymake-goto-prev-error)
+   ([remap move-beginning-of-line] . doom/backward-to-bol-or-indent)
+   ([remap move-end-of-line] . doom/forward-to-last-non-comment-or-eol)
+
+   ;; unbind
+   ("M-<tab>" . nil)
+   ("C-M-i" . nil)
+
+   ;; maps
+   :map prog-mode-map
+   ("C-c C-c" . my-project-compile-project)
+   ("C-c C-v" . my-project-run-project)
+   :map my/h-d-map
+   ("c" . open-emacs-config)
+   :map my/c-o-map
+   ("t" . my-new-eshell)))
 
 ;; global modes
 (which-key-mode t)
@@ -168,58 +202,19 @@ With prefix argument PROMPT, always prompt for the compile command."
 (setq window-sides-vertical t)
 (setq read-process-output-max (* 1024 1024)) ;; 1mb
 
-;; general config
-(use-package general
-  :ensure (:wait t)
-  :demand t
-  :config
-  (general-override-mode)
-  (general-auto-unbind-keys)
-  (general-define-key
-   :keymaps 'emacs-lisp-mode-map
-   "C-M-i" nil
-   "M-<tab>" nil)
-  (general-def
-    [remap next-error] 'flymake-goto-next-error
-    [remap prev-error] 'flymake-goto-prev-error
-    [remap move-beginning-of-line] 'doom/backward-to-bol-or-indent
-    [remap move-end-of-line] 'doom/forward-to-last-non-comment-or-eol
-    "M-<tab>" nil
-    "C-M-i" nil
-    "C-x O" 'other-frame
-    "C-|" (lambda () (interactive)
-            (duplicate-line)
-            (forward-line)
-            (doom/forward-to-last-non-comment-or-eol)))
-  (general-create-definer cz-def ; gptel prefix
-    :prefix "C-z")
-  (general-create-definer cc-def ; Comp prefix
-    :prefix "C-c")
-  (general-create-definer cx-def ; Main prefix
-    :prefix "C-x")
-  (general-create-definer ch-def ; Help prefix
-    :prefix "C-h")
-  (cc-def
-    "<left>" 'winner-undo
-    "<right>" 'winner-redo
-    "o t" 'my-new-eshell)
-  (cx-def "K" 'kill-current-buffer)
-  (ch-def "d c" 'open-emacs-config))
-
 ;; packages
 
 (use-package transient)
 
 (use-package magit
   :after transient
-  :general
-  (cx "g" 'magit-status))
+  :bind
+  ("C-x g" . magit-status))
 
 (use-package crux
-  :general
-  (general-def
-    "M-o" 'crux-smart-open-line-above
-    "C-o" 'crux-smart-open-line))
+  :bind
+  (("M-o" . crux-smart-open-line-above)
+   ("C-o" . crux-smart-open-line)))
 
 (use-package beacon
   :custom
@@ -228,9 +223,9 @@ With prefix argument PROMPT, always prompt for the compile command."
   (beacon-mode t))
 
 (use-package ace-window
-  :general
-  (cx-def "o" 'ace-window)
-  (cx-def "C-o" 'ace-swap-window)
+  :bind
+  (("C-x o" . ace-window)
+   ("C-c C-o" . ace-swap-window))
   :custom
   (aw-scope 'frame)
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
@@ -281,10 +276,9 @@ With prefix argument PROMPT, always prompt for the compile command."
   :hook (eshell-load . eat-eshell-mode))
 
 (use-package popper
-  :general
-  (general-def
-    "C-`" 'popper-toggle
-    "C-<tab>" 'popper-cycle)
+  :bind
+  (("C-`" . popper-toggle)
+   ("C-<tab>" . popper-cycle))
   :custom
   (popper-group-function #'popper-group-by-project)
   :init
@@ -309,26 +303,27 @@ With prefix argument PROMPT, always prompt for the compile command."
   (dashboard-setup-startup-hook))
 
 (use-package quickrun
-  :general
-  (cc-def "r" 'quickrun))
+  :bind
+  (("C-c r" . quickrun)))
 
 (use-package yasnippet
-  :general
-  (cc-def "SPC" 'yas-expand)
+  :bind
+  (("C-c SPC" . yas-expand)
+   :map yas-minor-mode-map
+   ("<tab>" . nil))
   :config
-  (yas-global-mode t)
-  (general-define-key :keymaps 'yas-minor-mode-map "<tab>" nil))
+  (yas-global-mode t))
 
 (use-package yasnippet-capf
   :config
   (add-to-list 'completion-at-point-functions #'yasnippet-capf))
 
 (use-package consult
-  :general
-  (general-def [remap goto-line] 'consult-goto-line)
-  (general-def [remap switch-to-buffer] 'consult-buffer)
-  (cc-def "s" 'consult-ripgrep)
-  (cc-def "x" 'consult-flymake))
+  :bind
+  (([remap goto-line] . consult-goto-line)
+   ([remap switch-to-buffer] . consult-buffer)
+   ("C-c s" . consult-ripgrep)
+   ("C-c x" . consult-flymake)))
 
 (use-package vertico
   ;; :custom
@@ -345,9 +340,8 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package corfu
   :init
   (global-corfu-mode)
-  :general
-  (general-def
-    "M-`" 'completion-at-point))
+  :bind
+  (("M-`" . completion-at-point)))
 
 (use-package orderless
   :custom
@@ -364,8 +358,9 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package eglot
   :ensure nil
-  :general
-  (general-define-key :keymaps 'eglot-mode-map "M-RET" #'eglot-code-actions)
+  :bind
+  (:map eglot-mode-map
+	("M-RET" . eglot-code-actions))
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
   (v-mode . eglot-ensure)
@@ -383,22 +378,22 @@ With prefix argument PROMPT, always prompt for the compile command."
   (doom-themes-org-config))
 
 (use-package zen-mode
-  :general
-  (cc-def "t z" 'zen-mode))
+  :bind
+  (:map my/c-t-map
+	("z" . zen-mode)))
 
 (use-package undo-fu
-  :general
-  (general-def
-    [remap undo] 'undo-fu-only-undo
-    [remap undo-redo] 'undo-fu-only-redo))
+  :bind
+  (([remap undo] . undo-fu-only-undo)
+   ([remap undo-redo] . undo-fu-only-redo)))
 
 (use-package undo-fu-session
   :config
   (undo-fu-session-global-mode t))
 
 (use-package vundo
-  :general
-  (cx-def "u" 'vundo))
+  :bind
+  (("C-x u" . vundo)))
 
 (use-package dimmer
   :config
@@ -418,14 +413,14 @@ With prefix argument PROMPT, always prompt for the compile command."
   (pdf-loader-install))
 
 (use-package transpose-frame
-  :general
-  (cx-def "M-o" 'transpose-frame))
+  :bind
+  (("C-x M-o" . transpose-frame)))
 
 (use-package gptel
-  :general
-  (cz-def "C-z" 'gptel-menu)
-  (cz-def "a" 'gptel-add)
-  (cz-def "f" 'gptel-add-file)
+  ;; :general
+  ;; (cz-def "C-z" 'gptel-menu)
+  ;; (cz-def "a" 'gptel-add)
+  ;; (cz-def "f" 'gptel-add-file)
   :config
   (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
   (gptel-highlight-mode)
@@ -453,10 +448,10 @@ With prefix argument PROMPT, always prompt for the compile command."
                     deepseek/deepseek-v3.2-exp
                     google/gemini-2.5-flash))))
 
-(use-package gptel-quick
-  :ensure (:type git :host github :repo "karthink/gptel-quick")
-  :general
-  (cz-def "?" 'gptel-quick))
+;; (use-package gptel-quick
+;;   :ensure (:type git :host github :repo "karthink/gptel-quick")
+;;   :general
+;;   (cz-def "?" 'gptel-quick))
 
 (use-package gptel-commit
   :custom
@@ -467,10 +462,10 @@ With prefix argument PROMPT, always prompt for the compile command."
                           :stream t
 	                  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
                           :models '(x-ai/grok-4.1-fast)))
-  :config
-  (with-eval-after-load 'magit
-    (define-key git-commit-mode-map (kbd "C-c g") #'gptel-commit)
-    (define-key git-commit-mode-map (kbd "C-c G") #'gptel-commit-rationale)))
+  :bind
+  (:map git-commit-mode-map
+	("C-c g" . gptel-commit)
+	("C-c G" . gptel-commit-rationale)))
 
 (use-package inheritenv)
 
@@ -511,10 +506,9 @@ With prefix argument PROMPT, always prompt for the compile command."
     (setq deactivate-mark deactivate)))
 
 (use-package move-text
-  :general
-  (general-def
-    "M-p" 'move-text-up
-    "M-n" 'move-text-down)
+  :bind
+  (("M-p" . move-text-up)
+   ("M-n" . move-text-down))
   :config
   (advice-add 'move-text-up :after 'indent-region-advice)
   (advice-add 'move-text-down :after 'indent-region-advice))
@@ -522,11 +516,7 @@ With prefix argument PROMPT, always prompt for the compile command."
 ;; Flutter packages
 
 (use-package flutter
-  :after dart-ts-mode
-  :hook (dart-ts-mode . (lambda ()
-                          (general-define-key :keymaps 'local
-                                              "C-c C-c" #'flutter-run-or-hot-reload
-                                              "C-c C-v" #'flutter-hot-restart))))
+  :after dart-ts-mode)
 
 ;; Python packages
 
@@ -673,6 +663,13 @@ Follow good Git style:
         org-roam-ui-follow t
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start t))
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (julia . t)
+   (python . t)
+   (jupyter . t)))
 
 (defun org-hide-properties ()
   "Hide all org-mode headline property drawers in buffer. Could be slow if it has a lot of overlays."

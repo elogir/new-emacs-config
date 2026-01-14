@@ -253,6 +253,10 @@ With prefix argument PROMPT, always prompt for the compile command."
   (global-colorful-mode t)
   (add-to-list 'global-colorful-modes 'helpful-mode))
 
+(use-package treesit-auto
+  :config
+  (global-treesit-auto-mode))
+
 (use-package indent-bars
   :custom
   (indent-bars-no-descend-lists t)
@@ -265,7 +269,12 @@ With prefix argument PROMPT, always prompt for the compile command."
   :hook ((python-ts-mode yaml-mode zig-ts-mode) . indent-bars-mode))
 
 (use-package apheleia
-  :config (apheleia-global-mode t))
+  :config
+  (apheleia-global-mode t)
+  (setf (alist-get 'python-mode apheleia-mode-alist)
+	'(ruff-isort ruff))
+  (setf (alist-get 'python-ts-mode apheleia-mode-alist)
+	'(ruff-isort ruff)))
 
 (use-package eat
   :ensure (:type git :host codeberg :repo "akib/emacs-eat")
@@ -518,6 +527,25 @@ With prefix argument PROMPT, always prompt for the compile command."
                           (general-define-key :keymaps 'local
                                               "C-c C-c" #'flutter-run-or-hot-reload
                                               "C-c C-v" #'flutter-hot-restart))))
+
+;; Python packages
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(python-base-mode . ("ruff" "server"))))
+(add-hook 'python-base-mode-hook
+          (lambda ()
+            (eglot-ensure)
+            (add-hook 'after-save-hook 'eglot-format nil t)))
+
+(use-package flymake-ruff
+  :config
+  (add-hook 'python-mode-hook #'flymake-ruff-load))
+
+;; Replace default (black) to use ruff for sorting import and formatting.
+
+
+(use-package jupyter)
 
 ;; Zig packages
 

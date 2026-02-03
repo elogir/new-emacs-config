@@ -249,10 +249,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   (global-colorful-mode t)
   (add-to-list 'global-colorful-modes 'helpful-mode))
 
-(use-package treesit-auto
-  :config
-  (global-treesit-auto-mode))
-
 (use-package indent-bars
   :custom
   (indent-bars-no-descend-lists t)
@@ -303,10 +299,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   (add-hook 'elpaca-after-init-hook #'dashboard-initialize)
   (dashboard-setup-startup-hook))
 
-(use-package quickrun
-  :bind
-  (("C-c r" . quickrun)))
-
 (use-package yasnippet
   :bind
   (("C-c SPC" . yas-expand)
@@ -327,10 +319,6 @@ With prefix argument PROMPT, always prompt for the compile command."
    ("C-c x" . consult-flymake)))
 
 (use-package vertico
-  ;; :custom
-  ;; (vertico-scroll-margin 0) ;; Different scroll margin
-  ;; (vertico-count 20) ;; Show more candidates
-  ;; (vertico-resize t) ;; Grow and shrink the Vertico minibuffer
   :init
   (vertico-mode))
 
@@ -364,11 +352,9 @@ With prefix argument PROMPT, always prompt for the compile command."
 	("M-RET" . eglot-code-actions))
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
-  (v-mode . eglot-ensure)
   (c-ts-mode . eglot-ensure)
   (c++-ts-mode . eglot-ensure)
-  (zig-ts-mode . eglot-ensure)
-  (dart-mode . eglot-ensure))
+  (zig-ts-mode . eglot-ensure))
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1))
@@ -417,87 +403,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   :bind
   (("C-x M-o" . transpose-frame)))
 
-(use-package gptel
-  ;; :general
-  ;; (cz-def "C-z" 'gptel-menu)
-  ;; (cz-def "a" 'gptel-add)
-  ;; (cz-def "f" 'gptel-add-file)
-  :config
-  (add-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
-  (gptel-highlight-mode)
-  (setq gptel-model   'x-ai/grok-4.1-fast
-        gptel-default-mode 'markdown-mode
-	gptel-backend
-	(gptel-make-openai "OpenRouter"
-          :host "openrouter.ai"
-          :endpoint "/api/v1/chat/completions"
-          :stream t
-	  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
-          :models '(openai/gpt-4.1-nano
-		    openai/gpt-4.1-mini
-		    openai/gpt-4.1
-		    openai/gpt-5-nano
-                    openai/gpt-5-codex
-                    openai/gpt-5
-                    openai/gpt-5-mini
-                    google/gemini-2.5-pro
-                    anthropic/claude-sonnet-4.5
-                    x-ai/grok-code-fast-1
-                    x-ai/grok-4-fast
-                    x-ai/grok-4.1-fast:free
-                    x-ai/grok-4.1-fast
-                    deepseek/deepseek-v3.2-exp
-                    google/gemini-2.5-flash))))
-
-;; (use-package gptel-quick
-;;   :ensure (:type git :host github :repo "karthink/gptel-quick")
-;;   :general
-;;   (cz-def "?" 'gptel-quick))
-
-(use-package gptel-commit
-  :custom
-  (gptel-commit-stream t)
-  (gptel-commit-backend (gptel-make-openai "OpenRouterCommit"
-                          :host "openrouter.ai"
-                          :endpoint "/api/v1/chat/completions"
-                          :stream t
-	                  :key (lambda () (auth-source-pick-first-password :host "openrouter.ai" :user "apikey"))
-                          :models '(x-ai/grok-4.1-fast)))
-  :bind
-  (:map git-commit-mode-map
-	("C-c g" . gptel-commit)
-	("C-c G" . gptel-commit-rationale)))
-
 (use-package inheritenv)
-
-;; (defun my-claude-notify (title message)
-;;   "Display a Linux notification using notify-send."
-;;   (if (executable-find "notify-send")
-;;       (call-process "notify-send" nil nil nil title message)
-;;     (message "%s: %s" title message)))
-
-;; (use-package monet
-;;   :ensure (:type git :host github :repo "stevemolitor/monet"))
-;; (use-package claude-code
-;;   :ensure (:type git :host github :repo "stevemolitor/claude-code.el")
-;;   :custom
-;;   (claude-code-notification-function #'my-claude-notify)
-;;   :config
-;;   (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
-;;   (monet-mode 1)
-
-;;   (claude-code-mode)
-;;   :bind
-;;   (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
-
-;; (add-to-list 'display-buffer-alist
-;;              '("\\*claude:"
-;;                (display-buffer-reuse-window display-buffer-pop-up-frame)
-;;                (reusable-frames . t)
-;;                (pop-up-frame-parameters . ((name . "Claude Code")))))
-
-;; (use-package vterm)
-
 
 (defun indent-region-advice (&rest ignored)
   (let ((deactivate deactivate-mark))
@@ -513,11 +419,6 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (advice-add 'move-text-up :after 'indent-region-advice)
   (advice-add 'move-text-down :after 'indent-region-advice))
-
-;; Flutter packages
-
-(use-package flutter
-  :after dart-ts-mode)
 
 ;; Python packages
 
@@ -535,9 +436,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 ;; Replace default (black) to use ruff for sorting import and formatting.
 
-
-(use-package jupyter)
-
 ;; Zig packages
 
 (use-package zig-ts-mode
@@ -549,105 +447,14 @@ With prefix argument PROMPT, always prompt for the compile command."
   (add-to-list 'eglot-server-programs
                '(zig-ts-mode . ("/home/rigole/Documents/zml/tools/zls.sh"))))
 
-;; (use-package zig-mode)
+;; Bazel
 
-;; Dart packages
+(use-package bazel)
 
-
-(use-package dart-mode
-  :init
-  (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs
-                 '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
-
-;; (use-package dart-ts-mode
-;;   :ensure (:type git :host github :repo "50ways2sayhard/dart-ts-mode")
-;;   :init
-;;   (with-eval-after-load 'eglot
-;;     (add-to-list 'eglot-server-programs
-;;                  '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
-
-;; (add-to-list 'major-mode-remap-alist '(dart-mode . dart-ts-mode))
-
-;; YAML packages
-
-;; (use-package yaml-ts-mode
-;;   :mode ("\\.yaml\\'" . yaml-ts-mode))
-
-;; V packages
-
-(use-package v-mode
-  :ensure (:type git :host github :repo "elogir/v-mode")
-  :mode ("\\(\\.v?v\\|\\.vsh\\)$" . 'v-mode)
-  :init
-  (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs
-                 '(v-mode . ("vls")))))
-
-;; C packages
-
-(add-to-list 'major-mode-remap-alist '(c-mode . c-ts-mode))
-
-;; C++ packages
-
-(add-to-list 'major-mode-remap-alist '(c++-mode . c++-ts-mode))
-
-;; Html mode
-
-(add-to-list 'major-mode-remap-alist '(html-mode . html-ts-mode))
-(add-to-list 'major-mode-remap-alist '(mhtml-mode . html-ts-mode))
-
-;; Typst packages
-
-(use-package typst-ts-mode)
-
-;; PHP packages
-
-(use-package php-ts-mode
-  :ensure (:type git :host github :repo "emacs-php/php-ts-mode")
-  :config
-  (add-to-list 'auto-mode-alist '("\\.php\\'" . php-ts-mode))
-  (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs
-                 '(php-ts-mode . ("intelephense" "--stdio")))))
-
-(use-package web-mode
-  :mode
-  (("\\.phtml\\'" . web-mode)
-   ("\\.blade.php\\'" . web-mode)
-   ("\\.tpl\\'" . web-mode)
-   ("\\.[agj]sp\\'" . web-mode)
-   ("\\.as[cp]x\\'" . web-mode)
-   ("\\.erb\\'" . web-mode)
-   ("\\.mustache\\'" . web-mode)
-   ("\\.djhtml\\'" . web-mode))
-  :config
-  (setq web-mode-engines-alist
-        '(("php"    . "\\.phtml\\'")
-          ("blade"  . "\\.blade\\."))))
+;; Treesit
 
 (provide 'init)
-
 (put 'erase-buffer 'disabled nil)
-
-(setq gptel-commit-prompt
-      "You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
-
-If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
-
-Don't repeat information from the subject line in the message body.
-
-Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
-
-Follow good Git style:
-
-- Separate the subject from the body with a blank line
-- Try to limit the subject line to 50 characters
-- Capitalize the subject line
-- Do not end the subject line with any punctuation
-- Use the imperative mood in the subject line
-- Wrap the body at 72 characters
-- Keep the body short and concise (omit it entirely if not useful)")
 
 (use-package org-roam
   :custom
@@ -676,13 +483,6 @@ Follow good Git style:
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start t))
 
-;; (org-babel-do-load-languages
-;;  'org-babel-load-languages
-;;  '((emacs-lisp . t)
-;;    (julia . t)
-;;    (python . t)
-;;    (jupyter . t)))
-
 (defun org-hide-properties ()
   "Hide all org-mode headline property drawers in buffer. Could be slow if it has a lot of overlays."
   (interactive)
@@ -710,80 +510,5 @@ Follow good Git style:
 
 ;; call org-hide-properties after inserting a new node
 (add-hook 'org-roam-post-node-insert-hook #'(lambda (_ _) (org-hide-properties)))
-
-(use-package casual
-  :bind (:map
-         calc-mode-map
-         ("C-o" . casual-calc-tmenu)
-         :map
-         calc-alg-map
-         ("C-o" . casual-calc-tmenu)))
-
-(defvar bazel-zig-last-target "//" 
-  "Last Bazel target used for debugging.")
-
-(defface my-blue-face
-  '((((background dark)) :background "#293f56")
-    (((background light)) :background "#d6c6a9"))  ; Light complement
-  "Face that adapts to theme background.")
-
-(use-package dape
-  :custom
-  (dape-buffer-window-arrangement 'right)
-  (dape-request-timeout 30)
-  :config
-  (add-hook 'dape-display-source-hook 
-            (lambda () 
-              (pulse-momentary-highlight-one-line 
-               (point) 
-               'my-blue-face)))
-  (add-to-list 'dape-configs
-               `(bazel-zig
-                 modes (zig-mode)
-                 ensure dape-ensure-command
-                 command-cwd dape-command-cwd
-                 command ,(file-name-concat dape-adapter-dir
-                                            "codelldb"
-                                            "extension"
-                                            "adapter"
-                                            "codelldb")
-                 command-args ("--port" :autoport "--settings"
-                               "{\"sourceLanguages\":[\"zig\"],\"evaluationTimeout\":5,\"summaryTimeout\":1}")
-                 port :autoport
-                 target ,(lambda ()
-                           (setq bazel-zig-last-target
-                                 (read-string "Bazel target: " bazel-zig-last-target)))
-                 fn ,(lambda (config)
-                       (let* ((target (plist-get config 'target))
-                              (compile-cmd (format "bazel build --compilation_mode=dbg --spawn_strategy=local %s" target))
-                              (target-clean (string-trim-left target "//"))
-                              (parts (split-string target-clean ":"))
-                              (path (car parts))
-                              (name (if (cdr parts) 
-                                        (cadr parts) 
-                                      (file-name-nondirectory path)))
-                              (binary-path (expand-file-name 
-                                            (format "bazel-bin/%s/%s" path name)
-                                            (dape-cwd)))
-                              (exec-root (string-trim
-                                          (shell-command-to-string "bazel info execution_root"))))
-                         (thread-first config
-                                       (plist-put 'compile compile-cmd)
-                                       (plist-put ':program binary-path)
-                                       (plist-put 'prefix-remote (file-name-as-directory exec-root)))))
-                 prefix-local ,(lambda () (file-name-as-directory (dape-cwd)))
-                 :type "lldb"
-                 :request "launch"
-                 :cwd dape-cwd
-                 :initCommands ["command source ~/.lldbinit"
-                                "settings set target.max-children-count 50"
-                                "settings set target.max-string-summary-length 200"]
-                 :args []
-                 :stopOnEntry nil)))
-
-;; (use-package greader
-;;   :ensure (:type git :host gitlab :repo "michelangelo-rodriguez/greader")
-;;   :custom
-;;   (greader-current-backend 'greader-speechd))
 
 ;; ;;; init.el ends here

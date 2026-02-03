@@ -214,7 +214,8 @@ With prefix argument PROMPT, always prompt for the compile command."
 (use-package crux
   :bind
   (("M-o" . crux-smart-open-line-above)
-   ("C-o" . crux-smart-open-line)))
+   ("C-o" . crux-smart-open-line)
+   ("C-x C-o" . crux-transpose-windows)))
 
 (use-package beacon
   :custom
@@ -367,7 +368,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   (c-ts-mode . eglot-ensure)
   (c++-ts-mode . eglot-ensure)
   (zig-ts-mode . eglot-ensure)
-  (dart-ts-mode . eglot-ensure))
+  (dart-mode . eglot-ensure))
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1))
@@ -544,18 +545,29 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (add-to-list 'auto-mode-alist '("\\.zig\\'" . zig-ts-mode)))
 
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(zig-ts-mode . ("/home/rigole/Documents/zml/tools/zls.sh"))))
+
 ;; (use-package zig-mode)
 
 ;; Dart packages
 
-(use-package dart-ts-mode
-  :ensure (:type git :host github :repo "50ways2sayhard/dart-ts-mode")
+
+(use-package dart-mode
   :init
   (with-eval-after-load 'eglot
     (add-to-list 'eglot-server-programs
                  '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
 
-(add-to-list 'major-mode-remap-alist '(dart-mode . dart-ts-mode))
+;; (use-package dart-ts-mode
+;;   :ensure (:type git :host github :repo "50ways2sayhard/dart-ts-mode")
+;;   :init
+;;   (with-eval-after-load 'eglot
+;;     (add-to-list 'eglot-server-programs
+;;                  '(dart-ts-mode . ("dart" "language-server" "--client-id" "emacs.eglot-dart")))))
+
+;; (add-to-list 'major-mode-remap-alist '(dart-mode . dart-ts-mode))
 
 ;; YAML packages
 
@@ -664,12 +676,12 @@ Follow good Git style:
         org-roam-ui-update-on-save t
         org-roam-ui-open-on-start t))
 
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((emacs-lisp . t)
-   (julia . t)
-   (python . t)
-   (jupyter . t)))
+;; (org-babel-do-load-languages
+;;  'org-babel-load-languages
+;;  '((emacs-lisp . t)
+;;    (julia . t)
+;;    (python . t)
+;;    (jupyter . t)))
 
 (defun org-hide-properties ()
   "Hide all org-mode headline property drawers in buffer. Could be slow if it has a lot of overlays."

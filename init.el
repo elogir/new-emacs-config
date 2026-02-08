@@ -396,10 +396,6 @@ With prefix argument PROMPT, always prompt for the compile command."
     (exec-path-from-shell-initialize)))
 
 (use-package posframe)
-(use-package pdf-tools
-  :config
-  (pdf-loader-install))
-
 (use-package transpose-frame
   :bind
   (("C-x M-o" . transpose-frame)))

@@ -223,13 +223,13 @@ With prefix argument PROMPT, always prompt for the compile command."
   :config
   (beacon-mode t))
 
-(use-package ace-window
-  :bind
-  (("C-x o" . ace-window)
-   ("C-c C-o" . ace-swap-window))
-  :custom
-  (aw-scope 'frame)
-  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+;; (use-package ace-window
+;;   :bind
+;;   (("C-x o" . ace-window)
+;;    ("C-c C-o" . ace-swap-window))
+;;   :custom
+;;   (aw-scope 'frame)
+;;   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
 (use-package ctrlf
   :config
@@ -353,6 +353,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
   (c-ts-mode . eglot-ensure)
+  (bazel-mode . eglot-ensure)
   (c++-ts-mode . eglot-ensure)
   (zig-ts-mode . eglot-ensure))
 
@@ -451,6 +452,10 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (use-package bazel)
 
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(bazel-mode . ("bazel-lsp"))))
+
 ;; Treesit
 
 (provide 'init)
@@ -510,5 +515,16 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 ;; call org-hide-properties after inserting a new node
 (add-hook 'org-roam-post-node-insert-hook #'(lambda (_ _) (org-hide-properties)))
+
+(use-package spatial-window
+  :ensure (:host github :repo "lewang/spatial-window")
+  :bind ("C-x o" . spatial-window-toggle-or-select)
+  :config
+  (customize-set-variable 'spatial-window-expert-mode t)
+  (defun spatial-window-toggle-or-select ()
+    (interactive)
+    (if (= (count-windows) 2)
+        (other-window 1)
+      (spatial-window-select))))
 
 ;; ;;; init.el ends here

@@ -1,5 +1,3 @@
-(setq package-enable-at-startup nil)
-(setq inhibit-default-init nil)
 (setq native-comp-async-report-warnings-errors nil)
 
 (setq gc-cons-threshold most-positive-fixnum
@@ -21,8 +19,7 @@
      (when (boundp 'after-focus-change-function)
        (add-function :after after-focus-change-function #'+gc-after-focus-change)))))
 
-(with-eval-after-load 'elpaca
-  (add-hook 'elpaca-after-init-hook '+reset-init-values))
+(add-hook 'after-init-hook '+reset-init-values)
 
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(tool-bar-lines . 0) default-frame-alist)

@@ -83,11 +83,11 @@
   (interactive)
   (find-file user-init-file))
 
-(defun my-new-eshell ()
-  "Open a new eshell buffer with a unique name."
-  (interactive)
-  (let ((eshell-buffer-name (generate-new-buffer-name "*eshell*")))
-    (eshell)))
+;; (defun my-new-eshell ()
+;;   "Open a new eshell buffer with a unique name."
+;;   (interactive)
+;;   (let ((eshell-buffer-name (generate-new-buffer-name "*eshell*")))
+;;     (eshell)))
 
 (defun my-project-run-project (&optional prompt)
   "Run a command in the project root directory.
@@ -165,23 +165,33 @@ With prefix argument PROMPT, always prompt for the compile command."
               (doom/forward-to-last-non-comment-or-eol)))
 
    ;; remaps
+   ([remap imenu] . consult-imenu)
+   ("M-g M-i" . consult-imenu-multi)
    ([remap next-error] . flymake-goto-next-error)
    ([remap pre-error] . flymake-goto-prev-error)
+   ("C-a" . doom/backward-to-bol-or-indent)
+   ("C-e" . doom/forward-to-last-non-comment-or-eol)
    ([remap move-beginning-of-line] . doom/backward-to-bol-or-indent)
+   ([remap beginning-of-visual-line] . doom/backward-to-bol-or-indent)
+   ([remap end-of-visual-line] . doom/forward-to-last-non-comment-or-eol)
    ([remap move-end-of-line] . doom/forward-to-last-non-comment-or-eol)
 
    ;; unbind
    ("M-<tab>" . nil)
    ("C-M-i" . nil)
+   ("C-z" . nil)
 
    ;; maps
    :map prog-mode-map
    ("C-c C-c" . my-project-compile-project)
    ("C-c C-v" . my-project-run-project)
+   ;; :map python-mode-map
+   ;; ("C-c C-c" . my-project-compile-project)
+   ;; ("C-c C-v" . my-project-run-project)
    :map my/h-d-map
    ("c" . open-emacs-config)
    :map my/c-o-map
-   ("t" . my-new-eshell)))
+   ("t" . multi-vterm)))
 
 ;; global modes
 (which-key-mode t)
@@ -191,7 +201,9 @@ With prefix argument PROMPT, always prompt for the compile command."
 (global-auto-revert-mode t)
 (global-visual-line-mode t)
 (global-so-long-mode nil)
+(xterm-mouse-mode t)
 (repeat-mode t)
+(menu-bar-mode -1)
 
 (fset 'yes-or-no-p 'y-or-n-p)
 (global-set-key [remap list-buffers] 'ibuffer)
@@ -231,9 +243,9 @@ With prefix argument PROMPT, always prompt for the compile command."
 ;;   (aw-scope 'frame)
 ;;   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
 
-(use-package ctrlf
-  :config
-  (ctrlf-mode t))
+;; (use-package ctrlf
+;;   :config
+;;   (ctrlf-mode t))
 
 (use-package emojify
   :custom (global-emojify-mode t))
@@ -280,7 +292,7 @@ With prefix argument PROMPT, always prompt for the compile command."
   (popper-group-function #'popper-group-by-project)
   :init
   (setq popper-reference-buffers
-        '("\\*.*eshell.*\\*"))
+        '("\\*.*vterminal.*\\*"))
   (popper-mode +1)
   (popper-echo-mode +1)
   :config
@@ -352,10 +364,11 @@ With prefix argument PROMPT, always prompt for the compile command."
 	("M-RET" . eglot-code-actions))
   :hook
   (eglot-managed-mode . (lambda () (eglot-inlay-hints-mode -1)))
-  (c-ts-mode . eglot-ensure)
-  (bazel-mode . eglot-ensure)
-  (c++-ts-mode . eglot-ensure)
-  (zig-ts-mode . eglot-ensure))
+  (c-ts-mode . my/maybe-eglot)
+  (python-ts-mode . my/maybe-eglot)
+  (bazel-mode . my/maybe-eglot)
+  (c++-ts-mode . my/maybe-eglot)
+  (zig-ts-mode . my/maybe-eglot))
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1))
@@ -422,10 +435,6 @@ With prefix argument PROMPT, always prompt for the compile command."
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
                '(python-base-mode . ("ruff" "server"))))
-(add-hook 'python-base-mode-hook
-          (lambda ()
-            (eglot-ensure)
-            (add-hook 'after-save-hook 'eglot-format nil t)))
 
 (use-package flymake-ruff
   :config
@@ -442,15 +451,20 @@ With prefix argument PROMPT, always prompt for the compile command."
 
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
-               '(zig-ts-mode . ("/home/rigole/Documents/zml/tools/zls.sh"))))
+               '(zig-ts-mode . ("/Users/raph/Documents/Git-Repos/zml/tools/zls.sh"))))
+;; '(zig-ts-mode . ("zls"))))
 
 ;; Bazel
-
-(use-package bazel)
-
-(with-eval-after-load 'eglot
-  (add-to-list 'eglot-server-programs
-               '(bazel-mode . ("bazel-lsp"))))
+(use-package bazel
+  :bind
+  (:map bazel-mode-map
+	("C-c C-c" . my-project-compile-project)
+	("C-c C-v" . my-project-run-project))
+  :config
+  (add-to-list 'auto-mode-alist '("\\.bazel\\'" . bazel-mode))
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(bazel-mode . ("bazel-lsp")))))
 
 ;; Treesit
 
@@ -522,5 +536,114 @@ With prefix argument PROMPT, always prompt for the compile command."
     (if (= (count-windows) 2)
         (other-window 1)
       (spatial-window-select))))
+
+(use-package vterm)
+
+;; (use-package monet
+;;   :ensure (:host github :repo "https://github.com/stevemolitor/monet"))
+
+;; (use-package agent-shell)
+
+(use-package claude-code-ide
+  :ensure (:host github :repo "manzaltu/claude-code-ide.el" :branch "anti-flicker-fixes")
+  :bind ("C-M-c" . claude-code-ide-menu)
+  :config
+  (claude-code-ide-emacs-tools-setup)
+  (setq claude-code-ide-terminal-backend 'vterm)
+
+  (advice-add 'claude-code-ide--sync-terminal-dimensions :around
+              (lambda (orig-fun buffer window)
+		(when (and buffer window (buffer-live-p buffer) (window-live-p window))
+                  (with-current-buffer buffer
+                    (when-let ((proc (get-buffer-process buffer)))
+                      (let ((new-h (window-body-height window))
+                            (new-w (window-body-width window))
+                            (cur-h (process-get proc 'my/last-height))
+                            (cur-w (process-get proc 'my/last-width)))
+			(unless (and (eql new-h cur-h) (eql new-w cur-w))
+                          (process-put proc 'my/last-height new-h)
+                          (process-put proc 'my/last-width new-w)
+                          (funcall orig-fun buffer window)))))))))
+
+(use-package multi-vterm
+  :config
+  (setq multi-vterm-dedicated-window-height-percent 30))
+
+(use-package jupyter
+  :config
+  (setq jupyter-repl-echo-eval-p t))
+
+(use-package ansi-color
+  :ensure nil
+  :hook (compilation-filter . ansi-color-compilation-filter))
+
+(use-package v-mode
+  :ensure (:type git :host github :repo "elogir/v-mode")
+  :mode ("\\(\\.v?v\\|\\.vsh\\)$" . 'v-mode)
+  :init
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 '(v-mode . ("vls")))))
+
+(use-package noccur)
+
+(use-package gptel-commit
+  :custom
+  (gptel-commit-use-claude-code t)
+  :bind
+  (:map git-commit-mode-map
+	("C-c g" . gptel-commit)
+	("C-c G" . gptel-commit-rationale))
+  :init
+  (setq gptel-commit-prompt
+	"You are an expert at writing Git commits. Your job is to write a short clear commit message that summarizes the changes.
+
+If you can accurately express the change in just the subject line, don't include anything in the message body. Only use the body when it is providing *useful* information.
+
+Don't repeat information from the subject line in the message body.
+
+Only return the commit message in your response. Do not include any additional meta-commentary about the task. Do not include the raw diff output in the commit message.
+
+Follow good Git style:
+
+- Separate the subject from the body with a blank line
+- Try to limit the subject line to 50 characters
+- Capitalize the subject line
+- Do not end the subject line with any punctuation
+- Use the imperative mood in the subject line
+- Wrap the body at 72 characters
+- Keep the body short and concise (omit it entirely if not useful)"))
+
+(setq vc-ignore-dir-regexp
+      (format "\\(%s\\)\\|\\(%s\\)"
+              vc-ignore-dir-regexp
+              tramp-file-name-regexp))
+(setq tramp-verbose 1)
+
+(setq tramp-auto-save-directory "~/tmp/tramp-autosave/")
+
+(defun my/maybe-eglot ()
+  "Start eglot only for local files."
+  (unless (file-remote-p default-directory)
+    (eglot-ensure)))
+
+(use-package gterm
+  :ensure (:type git :host github :repo "rwc9u/emacs-libgterm")
+  :config
+  (setq gterm-shell "/opt/homebrew/bin/bash")
+  (setq gterm-term-environment-variable "xterm-256color"))
+
+(add-hook 'vterm-mode-hook
+	  (lambda ()
+	    (set (make-local-variable 'buffer-face-mode-face)
+		 '(:family "Meslo LG M"))
+	    (buffer-face-mode t)))
+
+(use-package kkp
+  :ensure t
+  :hook (tty-setup . global-kkp-mode)
+  :config
+  ;; (setq kkp-alt-modifier 'alt) ;; use this if you want to map the Alt keyboard modifier to Alt in Emacs (and not to Meta)
+  )
 
 ;; ;;; init.el ends here

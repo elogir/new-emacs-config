@@ -6,6 +6,7 @@
 
 ;;; Package setup
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)
 (setq use-package-always-ensure t)
 
 ;;; Custom file
@@ -60,7 +61,7 @@
    :map my/h-d-map
    ("c" . open-emacs-config)
    :map my/c-o-map
-   ("t" . multi-vterm)))
+   ("t" . eshell)))
 
 ;;; Global modes
 (which-key-mode 1)
@@ -72,7 +73,7 @@
 (global-so-long-mode 1)
 (xterm-mouse-mode 1)
 (repeat-mode 1)
-(global-completion-preview-mode 1)
+(global-completion-preview-mode 0)
 (menu-bar-mode -1)
 
 ;;; Global settings
@@ -164,9 +165,6 @@
   (dimmer-configure-which-key)
   (dimmer-mode 1))
 
-(use-package zen-mode
-  :bind (:map my/c-t-map ("z" . zen-mode)))
-
 (use-package dashboard
   :custom
   (dashboard-banner-logo-title "Welcome home")
@@ -210,16 +208,19 @@
 
 ;;; Packages — git
 
-(use-package magit
-  :bind ("C-x g" . magit-status)
+(use-package project
   :config
-  (with-eval-after-load 'project
-    (setq project-switch-commands
-          '((project-find-file "Find file" "f")
-            (project-dired "Dired" "d")
-            (magit-project-status "Magit" "m")))))
+  (setq project-switch-commands
+        '((project-find-file "Find file" "f")
+          (project-dired "Dired" "d")
+          (project-eshell "Eshell" "e")
+          (magit-project-status "Magit" "m"))))
+
+(use-package magit
+  :bind ("C-x g" . magit-status))
 
 (use-package gptel-commit
+  :after git-commit 
   :custom (gptel-commit-use-claude-code t)
   :bind (:map git-commit-mode-map
               ("C-c g" . gptel-commit)
@@ -249,7 +250,7 @@ Follow good Git style:
 (use-package spatial-window
   :vc (:url "https://github.com/lewang/spatial-window")
   :bind ("C-x o" . spatial-window-toggle-or-select)
-  :custom (spatial-window-expert-mode t))
+  :custom (spatial-window-overlay-delay 3))
 
 (use-package vterm)
 
@@ -258,47 +259,59 @@ Follow good Git style:
 
 (use-package eat
   :vc (:url "https://codeberg.org/akib/emacs-eat")
-  :hook (eshell-load . eat-eshell-mode))
+  :hook (eshell-load . eat-eshell-mode)
+  (eshell-load . eat-eshell-visual-command-mode))
 
-(use-package claude-code-ide
-  :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :branch "anti-flicker-fixes")
-  :bind ("C-M-c" . claude-code-ide-menu)
-  :config
-  (claude-code-ide-emacs-tools-setup)
-  (setq claude-code-ide-terminal-backend 'vterm)
-  (advice-add 'claude-code-ide--sync-terminal-dimensions :around
-              (lambda (orig-fun buffer window)
-                (when (and buffer window (buffer-live-p buffer) (window-live-p window))
-                  (with-current-buffer buffer
-                    (when-let ((proc (get-buffer-process buffer)))
-                      (let ((new-h (window-body-height window))
-                            (new-w (window-body-width window))
-                            (cur-h (process-get proc 'my/last-height))
-                            (cur-w (process-get proc 'my/last-width)))
-                        (unless (and (eql new-h cur-h) (eql new-w cur-w))
-                          (process-put proc 'my/last-height new-h)
-                          (process-put proc 'my/last-width new-w)
-                          (funcall orig-fun buffer window)))))))))
+;; (use-package claude-code
+;;   :vc (:url "https://github.com/yuya373/claude-code-emacs.git")
+;;   :config
+;;   (global-set-key (kbd "C-c C-'") 'claude-code-transient))
 
-(use-package popper
-  :bind
-  (("C-`" . popper-toggle)
-   ("C-<tab>" . popper-cycle))
-  :custom
-  (popper-group-function #'popper-group-by-project)
-  :init
-  (setq popper-reference-buffers '("\\*.*vterminal.*\\*"))
-  (popper-mode +1)
-  (popper-echo-mode +1)
-  :config
-  (advice-add 'popper-close-latest :around #'popper--close-advice)
-  (add-hook 'popper-open-popup-hook #'popper--open-hook))
+;; (use-package claude-code-ide
+;;   :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :branch "anti-flicker-fixes")
+;;   :bind ("C-M-c" . claude-code-ide-menu)
+;;   :config
+;;   (claude-code-ide-emacs-tools-setup)
+;;   (setq claude-code-ide-terminal-backend 'vterm)
+;;   (setq claude-code-ide-use-ide-diff nil)
+;;   (advice-add 'claude-code-ide--sync-terminal-dimensions :around
+;;               (lambda (orig-fun buffer window)
+;;                 (when (and buffer window (buffer-live-p buffer) (window-live-p window))
+;;                   (with-current-buffer buffer
+;;                     (when-let ((proc (get-buffer-process buffer)))
+;;                       (let ((new-h (window-body-height window))
+;;                             (new-w (window-body-width window))
+;;                             (cur-h (process-get proc 'my/last-height))
+;;                             (cur-w (process-get proc 'my/last-width)))
+;;                         (unless (and (eql new-h cur-h) (eql new-w cur-w))
+;;                           (process-put proc 'my/last-height new-h)
+;;                           (process-put proc 'my/last-width new-w)
+;;                           (funcall orig-fun buffer window)))))))))
+
+;; (use-package popper
+;;   :bind
+;;   (("C-`" . popper-toggle)
+;;    ("C-<tab>" . popper-cycle))
+;;   :custom
+;;   (popper-group-function #'popper-group-by-project)
+;;   :init
+;;   (setq popper-reference-buffers '("\\*eshell\\*"))
+;;   (popper-mode +1)
+;;   (popper-echo-mode +1)
+;;   :config
+;;   (advice-add 'popper-close-latest :around #'popper--close-advice)
+;;   (add-hook 'popper-open-popup-hook #'popper--open-hook))
 
 ;; (use-package gterm
-;;   :vc (:url "https://github.com/rwc9u/emacs-libgterm")
-;;   :custom
-;;   (gterm-shell "/opt/homebrew/bin/bash")
-;;   (gterm-term-environment-variable "xterm-256color"))
+;;   :vc (:url "https://github.com/JNSFilipe/emacs-libgterm" :branch "fix-compilation")
+;;   :init
+;;   (setq gterm-always-compile-module t))
+
+(add-hook 'eat-mode-hook
+          (lambda ()
+            (set (make-local-variable 'buffer-face-mode-face)
+                 '(:family "Meslo LG M"))
+            (buffer-face-mode t)))
 
 (add-hook 'vterm-mode-hook
           (lambda ()
@@ -331,6 +344,103 @@ Follow good Git style:
               tramp-file-name-regexp))
 (setq tramp-verbose 1
       tramp-auto-save-directory "~/tmp/tramp-autosave/")
+
+;; (use-package aweshell
+;;   :vc (:url "https://github.com/manateelazycat/aweshell.git")
+;;   :config
+;;   (with-eval-after-load "esh-opt"
+;;     (autoload 'epe-theme-lambda "eshell-prompt-extras")
+;;     (setq eshell-highlight-prompt nil
+;;           eshell-prompt-function 'epe-theme-lambda)))
+
+;; (setq aweshell-auto-suggestion-p nil)
+;; (require 'aweshell)
+
+(advice-add 'epe-git-p :override (lambda () nil))
+(use-package esh-autosuggest
+  :hook (eshell-mode . esh-autosuggest-mode)
+  :bind
+  (:map esh-autosuggest-active-map
+        ("C-e" . company-complete-selection)))
+
+;; Run last (depth 90) to override anything aweshell set
+(add-hook 'eshell-mode-hook
+          (lambda ()
+            (setq-local company-backends '(esh-autosuggest))
+            (setq-local company-idle-delay 0))
+          90)
+
+(use-package eshell-atuin
+  :vc (:url "https://github.com/elogir/eshell-atuin.git" :rev :newest)
+  :after eshell
+  :custom
+  ((eshell-atuin-filter-mode 'session-preload))
+  :config
+  (eshell-atuin-mode))
+
+(use-package eshell-syntax-highlighting
+  :config
+  (eshell-syntax-highlighting-global-mode +1))
+
+(use-package em-hist
+  :ensure nil
+  :bind (:map eshell-hist-mode-map
+              ("M-r" . eshell-atuin-history)))
+
+(use-package eshell
+  :ensure nil
+  :bind (:map eshell-mode-map
+              ("C-l" . aweshell-clear-buffer))
+  :custom
+  ((eshell-history-append t)))
+
+(use-package eshell-vterm
+  :after eshell)
+
+(defalias 'eshell/v 'eshell-exec-visual)
+
+
+(advice-add 'eshell/cat :override #'aweshell-cat-with-syntax-highlight)
+(defalias 'eshell/e 'aweshell-emacs)
+
+(setq eshell-prompt-function #'my/eshell-prompt
+      eshell-prompt-regexp "^\\(?:(.*) \\)?.*[$#] ")
+
+;; (defun eshell/ff (file)
+;;   "Open a file with find-file."
+;;   (find-file file))
+
+;; (use-package eshell-up)
+
+;; (use-package eshell-prompt-extras
+;;   :config
+;;   (with-eval-after-load "esh-opt"
+;;     (autoload 'epe-theme-lambda "eshell-prompt-extras")
+;;     (setq eshell-highlight-prompt nil
+;;           eshell-prompt-function 'epe-theme-lambda)))
+
+(use-package agent-shell
+  :vc (:url "https://github.com/xenodium/agent-shell" :rev :newest)
+  :ensure t
+  :demand t
+  :bind ("M-z" . agent-shell-prompt-minibuffer)
+  :config
+  (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
+
+(use-package ghostel
+  :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
+
+(use-package winpulse
+  :vc (:url "https://github.com/xenodium/winpulse"
+	    :rev :newest)
+  :custom
+  ((winpulse-brightness 3))
+  :config
+  (winpulse-mode +1))
+
+(use-package ultra-scroll
+  :config
+  (ultra-scroll-mode t))
 
 ;;; Languages
 (require 'my-langs)

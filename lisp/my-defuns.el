@@ -93,32 +93,125 @@ With prefix argument PROMPT, always prompt for the compile command."
       (other-window 1)
     (spatial-window-select)))
 
-;;; Org property drawers
+(defun agent-shell-prompt-minibuffer (&optional pick-shell)
+  "Read a prompt from the minibuffer and send it to an `agent-shell'.
 
-(defun org-hide-properties ()
-  "Hide all org-mode headline property drawers in buffer."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward
-            "^ *:properties:\n\\( *:.+?:.*\n\\)+ *:end:\n" nil t)
-      (let ((ov_this (make-overlay (match-beginning 0) (match-end 0))))
-        (overlay-put ov_this 'display "")
-        (overlay-put ov_this 'hidden-prop-drawer t))))
-  (put 'org-toggle-properties-hide-state 'state 'hidden))
+If a region is active, embed it as context.
 
-(defun org-show-properties ()
-  "Show all org-mode property drawers hidden by org-hide-properties."
-  (interactive)
-  (remove-overlays (point-min) (point-max) 'hidden-prop-drawer t)
-  (put 'org-toggle-properties-hide-state 'state 'shown))
+With \\[universal-argument] prefix PICK-SHELL, prompt for which shell to use."
+  (interactive "P")
+  (let* ((shell-buffer (if pick-shell
+                           (let* ((buffers (agent-shell-buffers))
+                                  (start-new "Start new shell")
+                                  (choices (if buffers
+                                               (append (mapcar #'buffer-name buffers)
+                                                       (list start-new))
+                                             (list start-new)))
+                                  (choice (completing-read "Send to shell: "
+                                                           choices nil t)))
+                             (if (equal choice start-new)
+                                 (agent-shell--start
+                                  :config (or (agent-shell--resolve-preferred-config)
+                                              (agent-shell-select-config
+                                               :prompt "Start new agent: ")
+                                              (error "No agent config found"))
+                                  :no-focus t
+                                  :new-session t
+                                  :session-strategy 'new)
+                               (get-buffer choice)))
+                         ;; Use 'new to avoid nested minibuffer from
+                         ;; session strategy 'prompt timer while still
+                         ;; eagerly initializing the session.
+                         (let ((agent-shell-session-strategy 'new))
+                           (agent-shell--shell-buffer))))
+         (context (when (region-active-p)
+                    (agent-shell--get-region-context
+                     :deactivate t
+                     :agent-cwd (with-current-buffer shell-buffer
+                                  (agent-shell-cwd)))))
+         (prompt (read-string "Prompt: ")))
+    (when (string-empty-p prompt)
+      (user-error "No prompt provided"))
+    (with-current-buffer shell-buffer
+      (shell-maker-clear-buffer))
+    (agent-shell-insert
+     :text (if context
+               (concat prompt "\n\n" context)
+             prompt)
+     :submit t
+     :no-focus t
+     :shell-buffer shell-buffer)
+    (display-buffer shell-buffer
+                    '((display-buffer-in-direction)
+                      (direction . right)))))
 
-(defun org-toggle-properties ()
-  "Toggle visibility of property drawers."
+(defun aweshell-clear-buffer ()
+  "Clear eshell buffer."
   (interactive)
-  (if (eq (get 'org-toggle-properties-hide-state 'state) 'hidden)
-      (org-show-properties)
-    (org-hide-properties)))
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (eshell-send-input)))
+
+;; Make cat with syntax highlight.
+(defun aweshell-cat-with-syntax-highlight (filename)
+  "Like cat(1) but with syntax highlighting."
+  (let ((existing-buffer (get-file-buffer filename))
+        (buffer (find-file-noselect filename)))
+    (eshell-print
+     (with-current-buffer buffer
+       (if (fboundp 'font-lock-ensure)
+           (font-lock-ensure)
+         (with-no-warnings
+           (font-lock-fontify-buffer)))
+       (let ((contents (buffer-string)))
+         (remove-text-properties 0 (length contents) '(read-only nil) contents)
+         contents)))
+    (unless existing-buffer
+      (kill-buffer buffer))
+    nil))
+
+(defun aweshell-emacs (&rest args)
+  "Open a file in Emacs with ARGS, Some habits die hard."
+  (if (null args)
+      ;; If I just ran "emacs", I probably expect to be launching
+      ;; Emacs, which is rather silly since I'm already in Emacs.
+      ;; So just pretend to do what I ask.
+      (bury-buffer)
+    ;; We have to expand the file names or else naming a directory in an
+    ;; argument causes later arguments to be looked for in that directory,
+    ;; not the starting directory
+    (mapc #'find-file (mapcar #'expand-file-name (eshell-flatten-list (reverse args))))))
+
+(defvar-local my/eshell-old-path nil)
+
+(defun eshell/venv (&optional dir)
+  "Activate or deactivate a virtualenv in eshell."
+  (if dir
+      (let* ((venv-dir (file-name-as-directory (expand-file-name dir)))
+             (local-dir (file-local-name venv-dir))
+             (local-bin (concat local-dir "bin")))
+        (eshell/venv) ;; deactivate first
+        (setq my/eshell-old-path (eshell-command-result "echo $PATH"))
+        (eshell-command-result (format "export VIRTUAL_ENV=%s" (shell-quote-argument local-dir)))
+        (eshell-command-result (format "export PATH=%s:$PATH" (shell-quote-argument local-bin)))
+        (message "Activated: %s" local-dir))
+    (when my/eshell-old-path
+      (eshell-command-result (format "export PATH=%s" (shell-quote-argument my/eshell-old-path)))
+      (eshell-command-result "unset VIRTUAL_ENV")
+      (setq my/eshell-old-path nil)
+      (message "Deactivated venv"))))
+
+(defun my/eshell-prompt ()
+  "Custom eshell prompt showing venv and current directory."
+  (let ((venv (getenv "VIRTUAL_ENV")))
+    (concat
+     (when venv
+       (propertize (format "(%s) "
+                           (file-name-nondirectory (directory-file-name venv)))
+                   'face '(:foreground "cyan")))
+     (propertize (abbreviate-file-name (eshell/pwd))
+                 'face '(:foreground "gold"))
+     (if (= (user-uid) 0) " # " " $ "))))
 
 (provide 'my-defuns)
 ;;; my-defuns.el ends here

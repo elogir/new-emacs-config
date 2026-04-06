@@ -10,3 +10,4 @@ tree-sitter
 undo-fu-session
 eshell/history
 auto-save-list
+/.agent-shell/

@@ -4,7 +4,9 @@
 
 (use-package eglot
   :ensure nil
-  :bind (:map eglot-mode-map ("M-RET" . eglot-code-actions))
+  :bind (:map eglot-mode-map
+	      ("M-RET" . eglot-code-actions)
+	      ("C-=" . #'eglot-momentary-inlay-hints))
   :hook
   (eglot-managed-mode . (lambda ()
                           (eglot-inlay-hints-mode -1)

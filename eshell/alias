@@ -1,2 +1,4 @@
-alias c clear t
-alias ff find-file $1
+alias lla ls -lah
+alias ll ls -lh
+alias pk eshell-up-peek $1
+alias up eshell-up $1

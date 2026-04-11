@@ -75,6 +75,7 @@
 (repeat-mode 1)
 (global-completion-preview-mode 0)
 (menu-bar-mode -1)
+(save-place-mode 1)
 
 ;;; Global settings
 (setopt use-short-answers t)
@@ -152,6 +153,11 @@
 
 (use-package indent-bars
   :custom
+  (indent-bars-prefer-character t)
+  (indent-bars-no-stipple-char ?│)
+  (indent-bars-color '("gray50" :blend 0.3))
+  (indent-bars-color-by-depth nil)
+  (indent-bars-highlight-current-depth '(:blend 0.5))
   (indent-bars-no-descend-lists t)
   (indent-bars-treesit-support t)
   (indent-bars-treesit-ignore-blank-lines-types '("module"))
@@ -427,8 +433,8 @@ Follow good Git style:
   :config
   (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
 
-(use-package ghostel
-  :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
+;; (use-package ghostel
+;;   :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
 
 (use-package winpulse
   :vc (:url "https://github.com/xenodium/winpulse"
@@ -442,9 +448,39 @@ Follow good Git style:
   :config
   (ultra-scroll-mode t))
 
+;; QoL improvements from https://emacsredux.com/blog/2026/04/07/stealing-from-the-best-emacs-configs/
+
+(setq-default bidi-display-reordering 'left-to-right
+              bidi-paragraph-direction 'left-to-right)
+(setq bidi-inhibit-bpa t)
+
+(setq redisplay-skip-fontification-on-input t)
+(setq read-process-output-max (* 4 1024 1024))
+(setq save-interprogram-paste-before-kill t)
+
+(add-hook 'savehist-save-hook
+          (lambda ()
+            (setq kill-ring
+                  (mapcar #'substring-no-properties
+                          (cl-remove-if-not #'stringp kill-ring)))))
+
+(add-hook 'after-save-hook
+          #'executable-make-buffer-file-executable-if-script-p)
+
+(setq reb-re-syntax 'string)
+(setq ffap-machine-p-known 'reject)
+
+(advice-add 'save-place-find-file-hook :after
+            (lambda (&rest _)
+              (when buffer-file-name (ignore-errors (recenter)))))
+
+(setq help-window-select t)
+(setopt isearch-lazy-count t)
+
 ;;; Languages
 (require 'my-langs)
 
 (put 'erase-buffer 'disabled nil)
+
 
 ;;; init.el ends here

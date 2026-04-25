@@ -142,10 +142,13 @@
 
 (use-package beacon
   :custom (beacon-color "#ffff00")
-  :config (beacon-mode 1))
+  :config
+  (beacon-mode 1)
+  (add-to-list 'beacon-dont-blink-predicates
+	       (lambda () (string-match-p "\\`\\*\\(ghostel:\\|claude:\\)" (buffer-name)))))
 
-(use-package emojify
-  :custom (global-emojify-mode t))
+;; (use-package emojify
+;;   :custom (global-emojify-mode t))
 
 (use-package nerd-icons)
 
@@ -284,16 +287,46 @@ Never mention that it's written by an AI, nor mention Claude
 ;;   :config
 ;;   (global-set-key (kbd "C-c C-'") 'claude-code-transient))
 
-(use-package claude-code-ide
-  :vc (:url "https://github.com/parsnips/claude-code-ide.el.git" :branch "codex/ghostel-backend-support")
-  :bind (("C-M-c" . claude-code-ide-menu)
-	 ("M-z" . claude-code-ide-send-prompt))
-  :custom
-  (claude-code-ide-use-side-window nil)
+;; (use-package claude-code-ide
+;;   :ensure t
+;;   :vc (:url "https://github.com/parsnips/claude-code-ide.el.git" :branch "codex/ghostel-backend-support")
+;;   :bind (("C-M-c" . claude-code-ide-menu)
+;; 	 ("M-z" . claude-code-ide-send-prompt))
+;;   :custom
+;;   (claude-code-ide-use-side-window nil)
+;;   :config
+;;   (claude-code-ide-emacs-tools-setup)
+;;   (setq claude-code-ide-terminal-backend 'ghostel)
+;;   (setq claude-code-ide-use-ide-diff nil))
+
+(use-package inheritenv)
+
+(use-package monet
+  :demand t
+  :vc (:url "https://github.com/stevemolitor/monet" :rev :newest))
+
+(use-package claude-code
+  :vc (:url "https://github.com/elogir/claude-code.el.git" :rev :newest)
+  :after (monet inheritenv)
+  :custom ((claude-code-display-buffer-on-send nil))
   :config
-  (claude-code-ide-emacs-tools-setup)
-  (setq claude-code-ide-terminal-backend 'ghostel)
-  (setq claude-code-ide-use-ide-diff nil))
+  (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
+  (monet-mode 1)
+  (setq claude-code-terminal-backend 'ghostel)
+  (claude-code-mode 1)
+  :bind-keymap ("C-M-c" . claude-code-command-map)
+  :bind (("M-z" . claude-code-send-command)))
+
+;; (defun my-claude-notify (title message)
+;;   "Display a macOS notification with sound."
+;;   (call-process "osascript" nil nil nil
+;;                 "-e" (format "display notification \"%s\" with title \"%s\" sound name \"Glass\""
+;;                              message title)))
+
+;; (setq claude-code-notification-function #'my-claude-notify)
+;; (setq claude-code-term-name "xterm-ghostty")
+
+
 
 ;; (use-package popper
 ;;   :bind
@@ -435,12 +468,12 @@ Never mention that it's written by an AI, nor mention Claude
 ;;   (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
 
 (use-package ghostel
-  :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
+  :vc (:url "https://github.com/dakra/ghostel"
+            :lisp-dir "lisp"
+            :rev :newest)
+  :hook (ghostel-mode . (lambda () (display-line-numbers-mode -1))))
 
-(add-hook 'ghostel-mode-hook
-          (lambda ()
-            (face-remap-add-relative
-             'default :family "Menlo" :height 140)))
+
 
 (use-package winpulse
   :vc (:url "https://github.com/xenodium/winpulse"
@@ -489,4 +522,4 @@ Never mention that it's written by an AI, nor mention Claude
 (put 'erase-buffer 'disabled nil)
 
 
-;;; init.el ends here
+;; init.el ends here

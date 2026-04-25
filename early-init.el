@@ -28,10 +28,10 @@
 
 (setq frame-inhibit-implied-resize t)
 
-(push '(font . "Source Code Pro") default-frame-alist)
-(set-face-font 'default "Source Code Pro")
-(set-face-font 'variable-pitch "DejaVu Sans")
-(copy-face 'default 'fixed-pitch)
+;; (push '(font . "Source Code Pro") default-frame-alist)
+;; (set-face-font 'default "Source Code Pro")
+;; (set-face-font 'variable-pitch "DejaVu Sans")
+;; (copy-face 'default 'fixed-pitch)
 
 (advice-add #'x-apply-session-resources :override #'ignore)
 

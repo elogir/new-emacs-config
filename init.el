@@ -61,7 +61,7 @@
    :map my/h-d-map
    ("c" . open-emacs-config)
    :map my/c-o-map
-   ("t" . eshell)))
+   ("t" . ghostel)))
 
 ;;; Global modes
 (which-key-mode 1)
@@ -132,6 +132,13 @@
   :config
   (load-theme 'doom-tomorrow-night t)
   (doom-themes-org-config))
+
+;; (use-package ember-theme
+;;   :vc (:url "https://github.com/ember-theme/emacs")
+;;   :config
+;;   (add-to-list 'custom-theme-load-path
+;;                (file-name-directory (locate-library "ember-theme")))
+;;   (load-theme 'ember-soft t))
 
 (use-package beacon
   :custom (beacon-color "#ffff00")
@@ -249,7 +256,11 @@ Follow good Git style:
 - Do not end the subject line with any punctuation
 - Use the imperative mood in the subject line
 - Wrap the body at 72 characters
-- Keep the body short and concise (omit it entirely if not useful)"))
+- Keep the body short and concise (omit it entirely if not useful)
+
+Also follow previous commits style
+Never mention that it's written by an AI, nor mention Claude
+"))
 
 ;;; Packages — terminal & windows
 
@@ -273,26 +284,16 @@ Follow good Git style:
 ;;   :config
 ;;   (global-set-key (kbd "C-c C-'") 'claude-code-transient))
 
-;; (use-package claude-code-ide
-;;   :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :branch "anti-flicker-fixes")
-;;   :bind ("C-M-c" . claude-code-ide-menu)
-;;   :config
-;;   (claude-code-ide-emacs-tools-setup)
-;;   (setq claude-code-ide-terminal-backend 'vterm)
-;;   (setq claude-code-ide-use-ide-diff nil)
-;;   (advice-add 'claude-code-ide--sync-terminal-dimensions :around
-;;               (lambda (orig-fun buffer window)
-;;                 (when (and buffer window (buffer-live-p buffer) (window-live-p window))
-;;                   (with-current-buffer buffer
-;;                     (when-let ((proc (get-buffer-process buffer)))
-;;                       (let ((new-h (window-body-height window))
-;;                             (new-w (window-body-width window))
-;;                             (cur-h (process-get proc 'my/last-height))
-;;                             (cur-w (process-get proc 'my/last-width)))
-;;                         (unless (and (eql new-h cur-h) (eql new-w cur-w))
-;;                           (process-put proc 'my/last-height new-h)
-;;                           (process-put proc 'my/last-width new-w)
-;;                           (funcall orig-fun buffer window)))))))))
+(use-package claude-code-ide
+  :vc (:url "https://github.com/parsnips/claude-code-ide.el.git" :branch "codex/ghostel-backend-support")
+  :bind (("C-M-c" . claude-code-ide-menu)
+	 ("M-z" . claude-code-ide-send-prompt))
+  :custom
+  (claude-code-ide-use-side-window nil)
+  :config
+  (claude-code-ide-emacs-tools-setup)
+  (setq claude-code-ide-terminal-backend 'ghostel)
+  (setq claude-code-ide-use-ide-diff nil))
 
 ;; (use-package popper
 ;;   :bind
@@ -425,16 +426,21 @@ Follow good Git style:
 ;;     (setq eshell-highlight-prompt nil
 ;;           eshell-prompt-function 'epe-theme-lambda)))
 
-(use-package agent-shell
-  :vc (:url "https://github.com/xenodium/agent-shell" :rev :newest)
-  :ensure t
-  :demand t
-  :bind ("M-z" . agent-shell-prompt-minibuffer)
-  :config
-  (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
+;; (use-package agent-shell
+;;   :vc (:url "https://github.com/xenodium/agent-shell" :rev :newest)
+;;   :ensure t
+;;   :demand t
+;;   :bind ("M-z" . agent-shell-prompt-minibuffer)
+;;   :config
+;;   (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
 
-;; (use-package ghostel
-;;   :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
+(use-package ghostel
+  :vc (:url "https://github.com/dakra/ghostel.git" :rev :newest))
+
+(add-hook 'ghostel-mode-hook
+          (lambda ()
+            (face-remap-add-relative
+             'default :family "Menlo" :height 140)))
 
 (use-package winpulse
   :vc (:url "https://github.com/xenodium/winpulse"

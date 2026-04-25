@@ -43,8 +43,8 @@
 
 (use-package bazel
   :bind (:map bazel-mode-map
-              ("C-c C-c" . my-project-compile-project)
-              ("C-c C-v" . my-project-run-project))
+	      ("C-c C-c" . my-project-compile-project)
+	      ("C-c C-v" . my-project-run-project))
   :mode ("\\.bazel\\'" . bazel-mode))
 
 ;;; V
@@ -59,6 +59,10 @@
   :mode ("README\\.md\\'" . gfm-mode)
   :init (setq markdown-command "multimarkdown")
   :bind (:map markdown-mode-map ("C-c C-e" . markdown-do)))
+
+;;; Cuda
+
+(use-package cuda-mode)
 
 ;;; Compilation
 

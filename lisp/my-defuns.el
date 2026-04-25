@@ -49,7 +49,7 @@ With prefix argument PROMPT, always prompt for the command."
                      (gethash root my-project-run-command-cache))))
       (when command
         (puthash root command my-project-run-command-cache)
-        (compile command t)))))
+        (ghostel-compile command)))))
 
 (defun my-project-compile-project (&optional prompt)
   "Compile the project.
@@ -72,7 +72,7 @@ With prefix argument PROMPT, always prompt for the compile command."
                          compile-command))))
       (when command
         (puthash root command my-project-compile-command-cache)
-        (compile command)))))
+        (ghostel-compile command)))))
 
 (defun indent-region-advice (&rest _ignored)
   (let ((deactivate deactivate-mark))
@@ -119,11 +119,12 @@ With \\[universal-argument] prefix PICK-SHELL, prompt for which shell to use."
                                   :new-session t
                                   :session-strategy 'new)
                                (get-buffer choice)))
-                         ;; Use 'new to avoid nested minibuffer from
-                         ;; session strategy 'prompt timer while still
-                         ;; eagerly initializing the session.
-                         (let ((agent-shell-session-strategy 'new))
-                           (agent-shell--shell-buffer))))
+                         ;; Reuse the most-recently-used shell regardless
+                         ;; of project; fall back to creating one with 'new
+                         ;; to avoid nested minibuffer from strategy 'prompt.
+                         (or (seq-first (agent-shell-buffers))
+                             (let ((agent-shell-session-strategy 'new))
+                               (agent-shell--shell-buffer)))))
          (context (when (region-active-p)
                     (agent-shell--get-region-context
                      :deactivate t

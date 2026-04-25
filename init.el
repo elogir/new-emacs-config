@@ -3,6 +3,7 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 (require 'doom-text)
 (require 'my-defuns)
+(require 'package)
 
 ;;; Package setup
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -282,23 +283,6 @@ Never mention that it's written by an AI, nor mention Claude
   :hook (eshell-load . eat-eshell-mode)
   (eshell-load . eat-eshell-visual-command-mode))
 
-;; (use-package claude-code
-;;   :vc (:url "https://github.com/yuya373/claude-code-emacs.git")
-;;   :config
-;;   (global-set-key (kbd "C-c C-'") 'claude-code-transient))
-
-;; (use-package claude-code-ide
-;;   :ensure t
-;;   :vc (:url "https://github.com/parsnips/claude-code-ide.el.git" :branch "codex/ghostel-backend-support")
-;;   :bind (("C-M-c" . claude-code-ide-menu)
-;; 	 ("M-z" . claude-code-ide-send-prompt))
-;;   :custom
-;;   (claude-code-ide-use-side-window nil)
-;;   :config
-;;   (claude-code-ide-emacs-tools-setup)
-;;   (setq claude-code-ide-terminal-backend 'ghostel)
-;;   (setq claude-code-ide-use-ide-diff nil))
-
 (use-package inheritenv)
 
 (use-package monet
@@ -306,6 +290,7 @@ Never mention that it's written by an AI, nor mention Claude
   :vc (:url "https://github.com/stevemolitor/monet" :rev :newest))
 
 (use-package claude-code
+  :ensure t
   :vc (:url "https://github.com/elogir/claude-code.el.git" :rev :newest)
   :after (monet inheritenv)
   :custom ((claude-code-display-buffer-on-send nil))
@@ -313,39 +298,10 @@ Never mention that it's written by an AI, nor mention Claude
   (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
   (monet-mode 1)
   (setq claude-code-terminal-backend 'ghostel)
+  (setq claude-code-term-name "xterm-ghostty")
   (claude-code-mode 1)
   :bind-keymap ("C-M-c" . claude-code-command-map)
   :bind (("M-z" . claude-code-send-command)))
-
-;; (defun my-claude-notify (title message)
-;;   "Display a macOS notification with sound."
-;;   (call-process "osascript" nil nil nil
-;;                 "-e" (format "display notification \"%s\" with title \"%s\" sound name \"Glass\""
-;;                              message title)))
-
-;; (setq claude-code-notification-function #'my-claude-notify)
-;; (setq claude-code-term-name "xterm-ghostty")
-
-
-
-;; (use-package popper
-;;   :bind
-;;   (("C-`" . popper-toggle)
-;;    ("C-<tab>" . popper-cycle))
-;;   :custom
-;;   (popper-group-function #'popper-group-by-project)
-;;   :init
-;;   (setq popper-reference-buffers '("\\*eshell\\*"))
-;;   (popper-mode +1)
-;;   (popper-echo-mode +1)
-;;   :config
-;;   (advice-add 'popper-close-latest :around #'popper--close-advice)
-;;   (add-hook 'popper-open-popup-hook #'popper--open-hook))
-
-;; (use-package gterm
-;;   :vc (:url "https://github.com/JNSFilipe/emacs-libgterm" :branch "fix-compilation")
-;;   :init
-;;   (setq gterm-always-compile-module t))
 
 (add-hook 'eat-mode-hook
           (lambda ()
@@ -365,7 +321,7 @@ Never mention that it's written by an AI, nor mention Claude
 ;;; Packages — misc
 
 (use-package posframe)
-(use-package transpose-frame :bind ("C-x M-o" . transpose-frame))
+(use-package transpose-frame :ensure t :bind ("C-x M-o" . transpose-frame))
 (use-package inheritenv)
 (use-package exec-path-from-shell
   :config
@@ -384,17 +340,6 @@ Never mention that it's written by an AI, nor mention Claude
               tramp-file-name-regexp))
 (setq tramp-verbose 1
       tramp-auto-save-directory "~/tmp/tramp-autosave/")
-
-;; (use-package aweshell
-;;   :vc (:url "https://github.com/manateelazycat/aweshell.git")
-;;   :config
-;;   (with-eval-after-load "esh-opt"
-;;     (autoload 'epe-theme-lambda "eshell-prompt-extras")
-;;     (setq eshell-highlight-prompt nil
-;;           eshell-prompt-function 'epe-theme-lambda)))
-
-;; (setq aweshell-auto-suggestion-p nil)
-;; (require 'aweshell)
 
 (advice-add 'epe-git-p :override (lambda () nil))
 (use-package esh-autosuggest
@@ -446,34 +391,12 @@ Never mention that it's written by an AI, nor mention Claude
 (setq eshell-prompt-function #'my/eshell-prompt
       eshell-prompt-regexp "^\\(?:(.*) \\)?.*[$#] ")
 
-;; (defun eshell/ff (file)
-;;   "Open a file with find-file."
-;;   (find-file file))
-
-;; (use-package eshell-up)
-
-;; (use-package eshell-prompt-extras
-;;   :config
-;;   (with-eval-after-load "esh-opt"
-;;     (autoload 'epe-theme-lambda "eshell-prompt-extras")
-;;     (setq eshell-highlight-prompt nil
-;;           eshell-prompt-function 'epe-theme-lambda)))
-
-;; (use-package agent-shell
-;;   :vc (:url "https://github.com/xenodium/agent-shell" :rev :newest)
-;;   :ensure t
-;;   :demand t
-;;   :bind ("M-z" . agent-shell-prompt-minibuffer)
-;;   :config
-;;   (setq agent-shell-preferred-agent-config (agent-shell-anthropic-make-claude-code-config)))
-
 (use-package ghostel
+  :ensure t
   :vc (:url "https://github.com/dakra/ghostel"
             :lisp-dir "lisp"
             :rev :newest)
   :hook (ghostel-mode . (lambda () (display-line-numbers-mode -1))))
-
-
 
 (use-package winpulse
   :vc (:url "https://github.com/xenodium/winpulse"

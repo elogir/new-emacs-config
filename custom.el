@@ -42,17 +42,17 @@
 		 flymake-ruff ghostel gptel-commit gterm indent-bars
 		 jupyter kkp magit marginalia markdown-mode monet
 		 move-text multi-vterm noccur orderless org-roam-ui
-		 popper projectile pulsar spatial-window
+		 popper projectile pulsar spatial-window sway
 		 transpose-frame ultra-scroll undo-fu undo-fu-session
 		 v-mode vertico vundo web-server winpulse
 		 yasnippet-capf zen-mode zig-ts-mode))
  '(package-vc-selected-packages
-   '((claude-code :url "https://github.com/elogir/claude-code.el.git")
+   '((ghostel :url "https://github.com/dakra/ghostel" :lisp-dir "lisp")
+     (claude-code :url "https://github.com/elogir/claude-code.el.git")
+     (monet :url "https://github.com/stevemolitor/monet")
      (claude-code-ide :url
 		      "https://github.com/parsnips/claude-code-ide.el.git"
 		      :branch "codex/ghostel-backend-support")
-     (monet :url "https://github.com/stevemolitor/monet")
-     (ghostel :url "https://github.com/dakra/ghostel" :lisp-dir "lisp")
      (ember-theme :url "https://github.com/ember-theme/emacs")
      (v-mode :url "https://github.com/elogir/v-mode")
      (eat :url "https://codeberg.org/akib/emacs-eat"))))

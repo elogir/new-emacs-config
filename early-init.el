@@ -1,39 +1,47 @@
-(setq native-comp-async-report-warnings-errors nil)
+;;; early-init.el --- -*- lexical-binding: t; -*-
+
+;;; Garbage collection — relax during startup, restore after init
 
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 1)
 
-(defun +gc-after-focus-change ()
-  "Run GC when frame loses focus."
+(defun my/gc-after-focus-change ()
+  "Run GC when the frame loses focus."
   (run-with-idle-timer
    5 nil
    (lambda () (unless (frame-focus-state) (garbage-collect)))))
 
-(defun +reset-init-values ()
+(defun my/restore-gc-defaults ()
+  "Restore sane GC values once startup is done."
   (run-with-idle-timer
    1 nil
    (lambda ()
-     (setq gc-cons-percentage 0.1
-           gc-cons-threshold 100000000)
-     (message "gc-cons-threshold & file-name-handler-alist restored")
+     (setq gc-cons-threshold (* 100 1024 1024)
+           gc-cons-percentage 0.1)
      (when (boundp 'after-focus-change-function)
-       (add-function :after after-focus-change-function #'+gc-after-focus-change)))))
+       (add-function :after after-focus-change-function
+                     #'my/gc-after-focus-change)))))
 
-(add-hook 'after-init-hook '+reset-init-values)
+(add-hook 'after-init-hook #'my/restore-gc-defaults)
+
+;;; Native compilation
+
+(setq native-comp-async-report-warnings-errors nil)
+
+;;; Frame & UI
 
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
-(setq server-client-instructions nil)
 
-(setq frame-inhibit-implied-resize t)
+(setq frame-inhibit-implied-resize t
+      server-client-instructions nil
+      ring-bell-function #'ignore
+      inhibit-startup-screen t)
 
-;; (push '(font . "Source Code Pro") default-frame-alist)
-;; (set-face-font 'default "Source Code Pro")
-;; (set-face-font 'variable-pitch "DejaVu Sans")
-;; (copy-face 'default 'fixed-pitch)
+(set-face-font 'default "Adwaita Mono-10")
 
+;; Skip applying X session resources (we manage faces ourselves).
 (advice-add #'x-apply-session-resources :override #'ignore)
 
-(setq ring-bell-function #'ignore
-      inhibit-startup-screen t)
+;;; early-init.el ends here

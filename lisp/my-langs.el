@@ -18,7 +18,14 @@
   (bazel-mode . my/maybe-eglot)
   :config
   (add-to-list 'eglot-server-programs '(python-base-mode . ("ruff" "server")))
-  (add-to-list 'eglot-server-programs '(zig-ts-mode . ("/Users/raph/Documents/Git-Repos/zml/tools/zls.sh")))
+  (add-to-list 'eglot-server-programs
+               `(zig-ts-mode . ,(lambda (&optional _interactive _project)
+                                  (let* ((proj (project-current))
+                                         (root (and proj (project-root proj)))
+                                         (local (and root (expand-file-name "tools/zls.sh" root))))
+                                    (unless (and local (file-executable-p local))
+                                      (error "zls.sh not found at %s" local))
+                                    (list local)))))
   (add-to-list 'eglot-server-programs '(bazel-mode . ("bazel-lsp")))
   (add-to-list 'eglot-server-programs '(v-mode . ("vls"))))
 

@@ -315,7 +315,7 @@
   (project-switch-commands
    '((project-find-file "Find file" "f")
      (project-dired "Dired" "d")
-     (project-eshell "Eshell" "e")
+     (ghostel-project "Terminal" "t")
      (magit-project-status "Magit" "m"))))
 
 (use-package magit
@@ -387,7 +387,27 @@ Never mention that it's written by an AI, nor mention Claude
   :vc (:url "https://github.com/dakra/ghostel"
             :lisp-dir "lisp"
             :rev :newest)
-  :hook (ghostel-mode . my/disable-line-numbers))
+  :hook (ghostel-mode . my/disable-line-numbers)
+  :preface
+  (defun my/ghostel-copy-mode-copy-stay ()
+    "Copy the active region in copy mode without exiting copy mode."
+    (interactive)
+    (if (use-region-p)
+        (let ((text (ghostel--clean-copy-text
+                     (buffer-substring (region-beginning) (region-end)))))
+          (kill-new text)
+          (deactivate-mark)
+          (message "Copied to kill ring"))
+      (message "No region selected")))
+  (defun my/ghostel-copy-mode-paste-and-exit ()
+    "Exit copy mode and paste the most recent kill into the terminal."
+    (interactive)
+    (ghostel-copy-mode-exit)
+    (ghostel-yank))
+  :bind (:map ghostel-copy-mode-map
+              ("M-w" . my/ghostel-copy-mode-copy-stay)
+              ("C-w" . my/ghostel-copy-mode-copy-stay)
+              ("C-y" . my/ghostel-copy-mode-paste-and-exit)))
 
 ;;; Packages — eshell
 

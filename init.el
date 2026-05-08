@@ -389,8 +389,8 @@ Never mention that it's written by an AI, nor mention Claude
             :rev :newest)
   :hook (ghostel-mode . my/disable-line-numbers)
   :preface
-  (defun my/ghostel-copy-mode-copy-stay ()
-    "Copy the active region in copy mode without exiting copy mode."
+  (defun my/ghostel-readonly-copy-stay ()
+    "Copy the active region in read-only mode without exiting the mode."
     (interactive)
     (if (use-region-p)
         (let ((text (ghostel--clean-copy-text
@@ -399,15 +399,15 @@ Never mention that it's written by an AI, nor mention Claude
           (deactivate-mark)
           (message "Copied to kill ring"))
       (message "No region selected")))
-  (defun my/ghostel-copy-mode-paste-and-exit ()
-    "Exit copy mode and paste the most recent kill into the terminal."
+  (defun my/ghostel-readonly-paste-and-exit ()
+    "Exit read-only mode and paste the most recent kill into the terminal."
     (interactive)
-    (ghostel-copy-mode-exit)
+    (ghostel-readonly-exit)
     (ghostel-yank))
-  :bind (:map ghostel-copy-mode-map
-              ("M-w" . my/ghostel-copy-mode-copy-stay)
-              ("C-w" . my/ghostel-copy-mode-copy-stay)
-              ("C-y" . my/ghostel-copy-mode-paste-and-exit)))
+  :bind (:map ghostel-readonly-mode-map
+              ("M-w" . my/ghostel-readonly-copy-stay)
+              ("C-w" . my/ghostel-readonly-copy-stay)
+              ("C-y" . my/ghostel-readonly-paste-and-exit)))
 
 ;;; Packages — eshell
 
